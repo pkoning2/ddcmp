@@ -147,7 +147,7 @@ F 3 " ~" H 8700 3050 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	8500 3050 7150 3050
+	8500 3050 7850 3050
 Wire Wire Line
 	7150 3450 7300 3450
 Wire Wire Line
@@ -189,7 +189,7 @@ Wire Wire Line
 	7300 3550 7300 3450
 Connection ~ 7300 3450
 Wire Wire Line
-	7300 3450 8700 3450
+	7300 3450 7850 3450
 Wire Wire Line
 	7300 3950 7300 3850
 Wire Wire Line
@@ -217,7 +217,7 @@ F 3 " ~" H 1550 2900 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 Wire Wire Line
-	1750 2900 3100 2900
+	1750 2900 2450 2900
 Wire Wire Line
 	3100 3300 2850 3300
 Wire Wire Line
@@ -226,7 +226,7 @@ Wire Wire Line
 	2850 3450 2850 3300
 Connection ~ 2850 3300
 Wire Wire Line
-	2850 3300 1550 3300
+	2850 3300 2450 3300
 $Comp
 L ddcmp_symbols:C C11
 U 1 1 60AAD020
@@ -259,4 +259,40 @@ NoConn ~ 6750 3250
 NoConn ~ 3500 3100
 Text GLabel 3950 3600 0    50   UnSpc ~ 0
 V3_3
+Wire Wire Line
+	7850 3050 7850 2850
+Wire Wire Line
+	7850 2850 8000 2850
+Connection ~ 7850 3050
+Wire Wire Line
+	7850 3050 7150 3050
+Wire Wire Line
+	7850 3450 7850 3650
+Wire Wire Line
+	7850 3650 8000 3650
+Connection ~ 7850 3450
+Wire Wire Line
+	7850 3450 8700 3450
+Text HLabel 8000 3650 2    50   Output ~ 0
+IM_TXD_N
+Text HLabel 8000 2850 2    50   Output ~ 0
+IM_TDX
+Wire Wire Line
+	2450 2900 2450 2650
+Wire Wire Line
+	2450 2650 2250 2650
+Connection ~ 2450 2900
+Wire Wire Line
+	2450 2900 3100 2900
+Wire Wire Line
+	2450 3300 2450 3550
+Wire Wire Line
+	2450 3550 2250 3550
+Connection ~ 2450 3300
+Wire Wire Line
+	2450 3300 1550 3300
+Text HLabel 2250 3550 0    50   Input ~ 0
+IM_RXD_N
+Text HLabel 2250 2650 0    50   Input ~ 0
+IM_RDX
 $EndSCHEMATC

@@ -70,22 +70,21 @@ bool bist = true;//false;
 #define RXDATA  13      // RS232 receive data input
 #define RXCLKIN 14      // Receive clock input from modem, must be RXDATA+1
 #define CLKOUT  11      // RS232 clock output (RX/TX both) to DTE
-#define IMTXDATA 17     // Integral modem transmit data output
-#define IMRXDATA 16     // Integral modem receive data input
+#define IMTXDATA 19     // Integral modem transmit data output
+#define IMRXDATA 17     // Integral modem receive data input
 // Enable pins
 #define RS232EN 10      // RS-232 output enable
 #define RSCLKEN 9       // RS-232 clock output enable
 #define IMEN    18      // Integral Modem enable
 // Slew control
-#define IMSRL   17      // Integral modem transmit slew control (three state)
+#define IMSRL   16      // Integral modem transmit slew control (three state)
+// Loopback test control
+#define LOOPTEST 4      // Pull low to force power on selftest
 // LED pin assignments
-#define SYNLED   2      // In-sync indicator LED output
-// TEMP
-#define RXLED    25     // Packet received LED (RPico built-in LED)
-#define ACTLED   4      // Device is active
-//#define RXLED    4     // Packet received LED
-//#define ACTLED   25    // Device is active (RPico built-in LED)
-#define TXLED    3      // Packet sent LED
+#define SYNLED   20     // In-sync indicator LED output
+#define RXLED    21     // Packet received LED
+#define ACTLED   25     // Device is active (RPico built-in LED)
+#define TXLED    22     // Packet sent LED
 // No-connect pins.  These are used when a signal needs to get from
 // one state machine to another.  That applies to integral modem
 // receive data (from demodulator), as well as to the loopback case.
@@ -93,7 +92,7 @@ bool bist = true;//false;
 // are enabled (both input and output circuits) so they have to be
 // reserved for the purpose and configured as needed just like other
 // pins.
-#define RXRECDATA 22    // Integral modem recovered receive bit stream
+#define RXRECDATA 8     // Integral modem recovered receive bit stream
 #define LCPIN    6      // Loopback clock pin
 #define LDPIN    7      // Loopback data pin
 

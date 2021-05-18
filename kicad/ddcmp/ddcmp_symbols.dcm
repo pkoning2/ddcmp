@@ -36,6 +36,12 @@ K Mini-Circuits RF Transformer
 F https://www.minicircuits.com/pdfs/ADT8-1T+.pdf
 $ENDCMP
 #
+$CMP Berg_40_pin_DEC_labeling
+D Generic connector, double row, 02x20, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
+K connector
+F ~
+$ENDCMP
+#
 $CMP Conn_Coaxial
 D coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, ...)
 K BNC SMA SMB SMC coaxial connector CINCH RCA

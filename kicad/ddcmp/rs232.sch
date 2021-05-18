@@ -166,29 +166,29 @@ $EndComp
 $Comp
 L ddcmp_symbols:C C5
 U 1 1 60A798E1
-P 5550 2600
-F 0 "C5" H 5665 2646 50  0000 L CNN
-F 1 "0.1uF" H 5665 2555 50  0000 L CNN
-F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 5588 2450 50  0001 C CNN
-F 3 "" H 5550 2600 50  0001 C CNN
-F 4 "399-14010-1-ND​" H 5550 2600 50  0001 C CNN "Digikey"
-F 5 "Kemet" H 5550 2600 50  0001 C CNN "Mfg"
-F 6 "C315C104M5U5TA7301" H 5550 2600 50  0001 C CNN "Mfg part"
-	1    5550 2600
+P 5650 2600
+F 0 "C5" H 5765 2646 50  0000 L CNN
+F 1 "0.1uF" H 5765 2555 50  0000 L CNN
+F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 5688 2450 50  0001 C CNN
+F 3 "" H 5650 2600 50  0001 C CNN
+F 4 "399-14010-1-ND​" H 5650 2600 50  0001 C CNN "Digikey"
+F 5 "Kemet" H 5650 2600 50  0001 C CNN "Mfg"
+F 6 "C315C104M5U5TA7301" H 5650 2600 50  0001 C CNN "Mfg part"
+	1    5650 2600
 	1    0    0    -1  
 $EndComp
 $Comp
 L ddcmp_symbols:C C4
 U 1 1 60A7AB61
-P 5150 2600
-F 0 "C4" H 5265 2646 50  0000 L CNN
-F 1 "0.1uF" H 5265 2555 50  0000 L CNN
-F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 5188 2450 50  0001 C CNN
-F 3 "" H 5150 2600 50  0001 C CNN
-F 4 "399-14010-1-ND​" H 5150 2600 50  0001 C CNN "Digikey"
-F 5 "Kemet" H 5150 2600 50  0001 C CNN "Mfg"
-F 6 "C315C104M5U5TA7301" H 5150 2600 50  0001 C CNN "Mfg part"
-	1    5150 2600
+P 5250 2600
+F 0 "C4" H 5365 2646 50  0000 L CNN
+F 1 "0.1uF" H 5365 2555 50  0000 L CNN
+F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 5288 2450 50  0001 C CNN
+F 3 "" H 5250 2600 50  0001 C CNN
+F 4 "399-14010-1-ND​" H 5250 2600 50  0001 C CNN "Digikey"
+F 5 "Kemet" H 5250 2600 50  0001 C CNN "Mfg"
+F 6 "C315C104M5U5TA7301" H 5250 2600 50  0001 C CNN "Mfg part"
+	1    5250 2600
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -242,13 +242,13 @@ Wire Wire Line
 Wire Wire Line
 	2600 1900 2900 1900
 Wire Wire Line
-	4500 2100 5550 2100
+	4500 2100 5650 2100
 Wire Wire Line
-	5550 2100 5550 2450
+	5650 2100 5650 2450
 Wire Wire Line
-	4500 2400 5150 2400
+	4500 2400 5250 2400
 Wire Wire Line
-	5150 2400 5150 2450
+	5250 2400 5250 2450
 Wire Wire Line
 	8400 2400 9100 2400
 Wire Wire Line
@@ -308,23 +308,23 @@ $EndComp
 $Comp
 L power:GND #PWR04
 U 1 1 60A8203E
-P 5550 2850
-F 0 "#PWR04" H 5550 2600 50  0001 C CNN
-F 1 "GND" H 5555 2677 50  0000 C CNN
-F 2 "" H 5550 2850 50  0001 C CNN
-F 3 "" H 5550 2850 50  0001 C CNN
-	1    5550 2850
+P 5650 2850
+F 0 "#PWR04" H 5650 2600 50  0001 C CNN
+F 1 "GND" H 5655 2677 50  0000 C CNN
+F 2 "" H 5650 2850 50  0001 C CNN
+F 3 "" H 5650 2850 50  0001 C CNN
+	1    5650 2850
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR03
 U 1 1 60A8232F
-P 5150 2850
-F 0 "#PWR03" H 5150 2600 50  0001 C CNN
-F 1 "GND" H 5155 2677 50  0000 C CNN
-F 2 "" H 5150 2850 50  0001 C CNN
-F 3 "" H 5150 2850 50  0001 C CNN
-	1    5150 2850
+P 5250 2850
+F 0 "#PWR03" H 5250 2600 50  0001 C CNN
+F 1 "GND" H 5255 2677 50  0000 C CNN
+F 2 "" H 5250 2850 50  0001 C CNN
+F 3 "" H 5250 2850 50  0001 C CNN
+	1    5250 2850
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -334,9 +334,9 @@ Wire Wire Line
 Wire Wire Line
 	9700 2750 9700 2850
 Wire Wire Line
-	5550 2750 5550 2850
+	5650 2750 5650 2850
 Wire Wire Line
-	5150 2750 5150 2850
+	5250 2750 5250 2850
 Wire Wire Line
 	2350 1300 2350 1400
 Wire Wire Line
@@ -374,11 +374,11 @@ Wire Wire Line
 Wire Wire Line
 	2900 2350 2800 2350
 Text HLabel 6550 2350 0    50   Input ~ 0
-RS232_CLKEN
+RS232_ENABLE
 Text HLabel 2550 2350 0    50   Input ~ 0
 RS232_ENABLE
-Text Notes 7000 6050 0    100  ~ 0
-Note:\nThis entire page (RS-232 interface) is \noptional and may be left unpopulated if not needed.\nJ_n (male DB25, DTE connector) may be \nomitted if connection to a modem is not needed.\nJ_m (female DB25, DCE connector) may be \nomitted if direct connection to a DTE\n(with the framer as clock source) is not needed.\nJ_x (40 pin header) may be omitted if connection \nto a DEC bulkhead panel is not needed.
+Text Notes 7050 6050 0    100  ~ 0
+Note:\nThis entire page (RS-232 interface) except for J7 is \noptional and may be left unpopulated if not needed.\nJ5 (male DB25, DTE connector) may be \nomitted if connection to a modem is not needed.\nJ6 (female DB25, DCE connector) may be \nomitted if direct connection to a DTE\n(with the framer as clock source) is not needed.\nJ7 (40 pin header) may be omitted if connection \nto a DEC bulkhead panel is not needed; this\nconnector is shared between RS-232 and integral\nmodem features
 Wire Wire Line
 	2900 2600 2800 2600
 Wire Wire Line
@@ -415,7 +415,6 @@ Text GLabel 5950 800  0    50   UnSpc ~ 0
 V3_3
 NoConn ~ 4500 3200
 NoConn ~ 2900 3200
-NoConn ~ 8400 2800
 Wire Wire Line
 	4500 2600 4700 2600
 Wire Wire Line
@@ -429,7 +428,7 @@ Wire Wire Line
 Wire Wire Line
 	8400 3200 8650 3200
 Text Label 4700 2600 0    50   ~ 0
-RTS
+RS232_1
 Text Label 4700 2800 0    50   ~ 0
 TXD
 Text Label 4700 3000 0    50   ~ 0
@@ -443,23 +442,302 @@ TXCLK
 $Comp
 L Connector:DB25_Male_MountingHoles J5
 U 1 1 60B31BFA
-P 2350 5950
-F 0 "J5" H 2530 5952 50  0000 L CNN
-F 1 "DTE" H 2530 5861 50  0000 L CNN
-F 2 "" H 2350 5950 50  0001 C CNN
-F 3 " ~" H 2350 5950 50  0001 C CNN
-	1    2350 5950
+P 2400 5650
+F 0 "J5" H 2580 5652 50  0000 L CNN
+F 1 "DTE" H 2580 5561 50  0000 L CNN
+F 2 "ddcmp_parts:Amphenol_DB25M_PCB" H 2400 5650 50  0001 C CNN
+F 3 " ~" H 2400 5650 50  0001 C CNN
+	1    2400 5650
 	1    0    0    -1  
 $EndComp
 $Comp
 L Connector:DB25_Female_MountingHoles J6
 U 1 1 60B3290B
-P 4750 6000
-F 0 "J6" H 4930 6002 50  0000 L CNN
-F 1 "DCE" H 4930 5911 50  0000 L CNN
-F 2 "" H 4750 6000 50  0001 C CNN
-F 3 " ~" H 4750 6000 50  0001 C CNN
-	1    4750 6000
+P 4400 5650
+F 0 "J6" H 4580 5652 50  0000 L CNN
+F 1 "DCE" H 4580 5561 50  0000 L CNN
+F 2 "ddcmp_parts:Amphenol_DB25F_PCB" H 4400 5650 50  0001 C CNN
+F 3 " ~" H 4400 5650 50  0001 C CNN
+	1    4400 5650
 	1    0    0    -1  
 $EndComp
+$Comp
+L power:GND #PWR0105
+U 1 1 60A731C7
+P 2400 7200
+F 0 "#PWR0105" H 2400 6950 50  0001 C CNN
+F 1 "GND" H 2405 7027 50  0000 C CNN
+F 2 "" H 2400 7200 50  0001 C CNN
+F 3 "" H 2400 7200 50  0001 C CNN
+	1    2400 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0114
+U 1 1 60A73F97
+P 4400 7200
+F 0 "#PWR0114" H 4400 6950 50  0001 C CNN
+F 1 "GND" H 4405 7027 50  0000 C CNN
+F 2 "" H 4400 7200 50  0001 C CNN
+F 3 "" H 4400 7200 50  0001 C CNN
+	1    4400 7200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4400 7200 4400 7150
+Wire Wire Line
+	2400 7050 2400 7150
+Wire Wire Line
+	2100 6850 1950 6850
+Wire Wire Line
+	1950 6850 1950 7150
+Wire Wire Line
+	1950 7150 2400 7150
+Connection ~ 2400 7150
+Wire Wire Line
+	2400 7150 2400 7200
+Wire Wire Line
+	4100 4450 3850 4450
+Wire Wire Line
+	3850 7150 4400 7150
+Connection ~ 4400 7150
+Wire Wire Line
+	4400 7150 4400 7050
+Wire Wire Line
+	3850 4450 3850 5650
+Wire Wire Line
+	4100 5650 3850 5650
+Connection ~ 3850 5650
+Wire Wire Line
+	3850 5650 3850 7150
+Wire Wire Line
+	2100 5650 1950 5650
+Wire Wire Line
+	1950 5650 1950 6850
+Connection ~ 1950 6850
+Wire Wire Line
+	8400 2800 8650 2800
+Text Label 8650 2800 0    50   ~ 0
+RS232_0
+$Comp
+L ddcmp_symbols:Berg_40_pin_DEC_labeling J?
+U 1 1 60AB6B87
+P 6000 5650
+AR Path="/60A471E8/60AB6B87" Ref="J?"  Part="1" 
+AR Path="/60A47002/60AB6B87" Ref="J7"  Part="1" 
+F 0 "J7" H 6050 6767 50  0000 C CNN
+F 1 "Bulkhead" H 6050 6676 50  0000 C CNN
+F 2 "ddcmp_parts:Berg_40_pin_DEC_pinout" H 6000 5650 50  0001 C CNN
+F 3 "~" H 6000 5650 50  0001 C CNN
+	1    6000 5650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5800 4750 5650 4750
+Wire Wire Line
+	5650 4750 5650 6650
+$Comp
+L power:GND #PWR?
+U 1 1 60AB6B8F
+P 5650 6850
+AR Path="/60A471E8/60AB6B8F" Ref="#PWR?"  Part="1" 
+AR Path="/60A47002/60AB6B8F" Ref="#PWR09"  Part="1" 
+F 0 "#PWR09" H 5650 6600 50  0001 C CNN
+F 1 "GND" H 5655 6677 50  0000 C CNN
+F 2 "" H 5650 6850 50  0001 C CNN
+F 3 "" H 5650 6850 50  0001 C CNN
+	1    5650 6850
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 60AB6B95
+P 6450 6800
+AR Path="/60A471E8/60AB6B95" Ref="#PWR?"  Part="1" 
+AR Path="/60A47002/60AB6B95" Ref="#PWR010"  Part="1" 
+F 0 "#PWR010" H 6450 6550 50  0001 C CNN
+F 1 "GND" H 6455 6627 50  0000 C CNN
+F 2 "" H 6450 6800 50  0001 C CNN
+F 3 "" H 6450 6800 50  0001 C CNN
+	1    6450 6800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6450 6800 6450 6650
+Wire Wire Line
+	6450 6650 6300 6650
+Wire Wire Line
+	6450 6650 6450 4750
+Wire Wire Line
+	6450 4750 6300 4750
+Connection ~ 6450 6650
+Wire Wire Line
+	5800 5850 5550 5850
+Text Label 5450 5850 2    50   ~ 0
+RS232_1
+Wire Wire Line
+	5800 5450 5550 5450
+Wire Wire Line
+	5550 5450 5550 5850
+Connection ~ 5550 5850
+Wire Wire Line
+	5550 5850 5450 5850
+Wire Wire Line
+	5800 6350 5450 6350
+Wire Wire Line
+	5800 6050 5450 6050
+Text Label 5450 6350 2    50   ~ 0
+RXD
+Text Label 5450 6050 2    50   ~ 0
+RXCLK
+Wire Wire Line
+	5800 6150 5450 6150
+Text Label 5450 6150 2    50   ~ 0
+TXCLK
+Wire Wire Line
+	5800 6450 5450 6450
+Text Label 5450 6450 2    50   ~ 0
+TXD
+Wire Wire Line
+	5800 5350 5450 5350
+Wire Wire Line
+	5800 5250 5450 5250
+Wire Wire Line
+	5800 5050 5450 5050
+Wire Wire Line
+	6300 5050 6600 5050
+Text HLabel 6600 5050 2    50   Output ~ 0
+IM_RXD_N
+Text HLabel 5450 5050 0    50   Output ~ 0
+IM_RDX
+Text HLabel 5450 5250 0    50   Input ~ 0
+IM_TXD
+Text HLabel 5450 5350 0    50   Input ~ 0
+IM_TXD_N
+Wire Wire Line
+	2100 5550 1850 5550
+Wire Wire Line
+	4100 5850 3750 5850
+Text Label 1700 5550 2    50   ~ 0
+RS232_1
+Text Label 3650 5850 2    50   ~ 0
+RS232_1
+Wire Wire Line
+	4100 5450 3750 5450
+Wire Wire Line
+	3750 5450 3750 5850
+Connection ~ 3750 5850
+Wire Wire Line
+	3750 5850 3650 5850
+Wire Wire Line
+	4100 6150 3650 6150
+Text Label 3650 6150 2    50   ~ 0
+RS232_0
+Wire Wire Line
+	2100 6250 1850 6250
+Wire Wire Line
+	1850 6250 1850 5550
+Connection ~ 1850 5550
+Wire Wire Line
+	1850 5550 1700 5550
+Wire Wire Line
+	4100 5250 3750 5250
+Wire Wire Line
+	3750 5250 3750 5450
+Connection ~ 3750 5450
+Wire Wire Line
+	2100 6650 1700 6650
+Text Label 1700 6650 2    50   ~ 0
+TXD
+Wire Wire Line
+	2100 6450 1700 6450
+Text Label 1700 6450 2    50   ~ 0
+RXD
+Wire Wire Line
+	4100 4650 3650 4650
+Text Label 3650 4650 2    50   ~ 0
+RXD
+Wire Wire Line
+	4100 4850 3650 4850
+Text Label 3650 4850 2    50   ~ 0
+TXD
+Wire Wire Line
+	2100 6550 1700 6550
+Text Label 1700 6550 2    50   ~ 0
+CLKOUT
+Wire Wire Line
+	2100 6150 1700 6150
+Text Label 1700 6150 2    50   ~ 0
+CLKOUT
+Wire Wire Line
+	4100 5150 3650 5150
+Wire Wire Line
+	4100 4750 3650 4750
+Text Label 3650 4750 2    50   ~ 0
+TXCLK
+Text Label 3650 5150 2    50   ~ 0
+RXCLK
+NoConn ~ 4100 4550
+NoConn ~ 4100 4950
+NoConn ~ 4100 5050
+NoConn ~ 4100 5350
+NoConn ~ 4100 5550
+NoConn ~ 4100 5750
+NoConn ~ 4100 5950
+NoConn ~ 4100 6050
+NoConn ~ 4100 6250
+NoConn ~ 4100 6350
+NoConn ~ 4100 6450
+NoConn ~ 4100 6550
+NoConn ~ 4100 6650
+NoConn ~ 4100 6750
+NoConn ~ 4100 6850
+NoConn ~ 2100 4450
+NoConn ~ 2100 4550
+NoConn ~ 2100 4650
+NoConn ~ 2100 4750
+NoConn ~ 2100 4850
+NoConn ~ 2100 4950
+NoConn ~ 2100 5050
+NoConn ~ 2100 5150
+NoConn ~ 2100 5250
+NoConn ~ 2100 5350
+NoConn ~ 2100 5450
+NoConn ~ 2100 5750
+NoConn ~ 2100 5850
+NoConn ~ 2100 5950
+NoConn ~ 2100 6050
+NoConn ~ 2100 6350
+NoConn ~ 2100 6750
+NoConn ~ 5800 4850
+NoConn ~ 5800 4950
+NoConn ~ 5800 5150
+NoConn ~ 5800 5550
+NoConn ~ 5800 5650
+NoConn ~ 5800 5750
+NoConn ~ 5800 5950
+NoConn ~ 5800 6250
+NoConn ~ 5800 6550
+NoConn ~ 6300 6550
+NoConn ~ 6300 6450
+NoConn ~ 6300 6350
+NoConn ~ 6300 6250
+NoConn ~ 6300 6150
+NoConn ~ 6300 6050
+NoConn ~ 6300 5950
+NoConn ~ 6300 5850
+NoConn ~ 6300 5750
+NoConn ~ 6300 5650
+NoConn ~ 6300 5550
+NoConn ~ 6300 5450
+NoConn ~ 6300 5350
+NoConn ~ 6300 5250
+NoConn ~ 6300 5150
+NoConn ~ 6300 4950
+NoConn ~ 6300 4850
+Wire Wire Line
+	5800 6650 5650 6650
+Connection ~ 5650 6650
+Wire Wire Line
+	5650 6650 5650 6850
 $EndSCHEMATC
