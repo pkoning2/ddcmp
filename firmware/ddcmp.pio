@@ -1,0 +1,239 @@
+// DDCMP sync framer PIO state machines
+//
+// Copyright (C) 2021 by Paul Koning
+
+// Global defines
+	// irqs
+	.define	rxbit 4
+	.define	txbit 5
+
+/* The three configuration cases, and the state machines used for
+   each case, are:
+   1. RS232 signaling, modem supplied clocks
+      modem_clk_xmit, modem_clk_recv
+   2. RS232 signaling, local clock source
+      local_clk_xmit, local_clk_recv
+   3. Integral modem
+      inmodem_xmit, inmodem_rxbit, local_clk_recv
+   Note that these state machines all have to be in the same PIO,
+   because they communicate via an IRQ.  While that is documented
+   as working across all state machines, in reality it seems to be
+   local to a given PIO.
+
+   In all cases, if an activity LED is wanted, the pulse_stretcher
+   state machine is also used.
+*/
+      
+/* Transmit for use with modem sourced clock
+   This is the transmit pin driver for the case where the modem
+   supplies the bit clocks, i.e., for use along with the modem_clk
+   state machine.
+
+   in_base is the transmit clock pin (from modem)
+   out_base is the transmit data pin
+   out_count is 1
+   state machine clock: fast (minimally 8x the bit rate).
+
+   Initialization:
+   Before starting this state machine, use the execute register to
+   force the execution of these two instructions:
+   	 pull
+	 mov	x, osr
+   The data pushed into the output FIFO by the controlling program is
+   the sync pattern, 0x96969696.
+*/
+	.program modem_clk_xmit
+	.wrap_target
+	wait	1 pin 0
+	out	pins 1
+	pull	ifempty noblock
+	.wrap
+
+/* Sync search and data receive
+   This is the receive byte framer, modem clock case
+   The bit clock used here is the one supplied by the modem.
+   
+   When searching for sync, no data is sent to the FIFO.  But
+   when sync is found, the sync pattern seen (4 bytes of 0x96)
+   is pushed to the receive FIFO as a marker.  This allows the
+   mainline code to flush data in the FIFO preceding a resync
+   without having to stop the state machine to do so.  It depends
+   on the assumption that 4 SYN bytes aren't found in the packet
+   data past the point where the main code decided to resync; that
+   is admittedly possible but the probability is low enough not
+   to worry about it.
+
+   in_base is the receive data pin; the receive bit clock
+   pin must be the next higher pin number.
+   sideset_base is the "in sync" LED pin
+   sideset_count is 1 (optional side set)
+   state machine clock: fast (minimally 8x the bit rate)
+   input fifo threshold is 32
+
+   Initialization:
+   Before starting this state machine, use the execute register to
+   force the execution of these three instructions:
+   	 pull
+	 mov	y, osr
+	 mov	isr, null
+   then set the fifo configuration to joined input fifos.  The data
+   pushed into the output FIFO by the controlling program is the sync
+   pattern, 0x96969696.
+
+   To go back to sync search, jump this state machine back to its
+   beginning address. 
+*/
+	.program modem_clk_recv
+	.side_set 1 opt
+search:	wait	0 pin 1 side 0	  // indicate not in sync
+	in	pins, 1
+	mov	x, isr
+	jmp	x!=y, search
+	push	        side 1    // indicate in sync
+	.wrap_target
+	wait	0 pin 1
+	in	pins, 1
+	push	iffull noblock
+	.wrap
+
+/* Transmit for use with locally generated clock (DCE case)
+   This is a combination clock and transmit data engine.
+   It generates the bit clock, which is an output here, along
+   with the transmit data.  It also provides that bit clock
+   to the receive state machine
+
+   out_base is the transmit data pin
+   out_count is 1
+   sideset_base is the clock output pin
+   sideset_count is 1 (with optional side set)
+   state machine clock: 4x the required bit rate.
+   output fifo threshold is 8 or 32, joined output fifos
+
+   Initialization:
+   Before starting this state machine, use the execute register to
+   force the execution of these two instructions:
+   	 pull
+	 mov	x, osr
+   The data pushed into the output FIFO by the controlling program is
+   the sync pattern, 0x96969696.
+*/
+	.program local_clk_xmit
+	.side_set 1 opt
+	.wrap_target
+	irq	rxbit side 1 [1]
+	out	pins 1 side 0
+	pull	ifempty noblock
+	.wrap
+
+/* Transmit, integral modem case
+   This generates the transmit data stream modulated in integral
+   modem form.
+
+   out_base is the transmit data pin.  side_set also assigned this.
+   out_count is 1
+   state machine clock: 4x the required bit rate.
+   output fifo threshold is 8 or 32, joined output fifos
+
+   Initialization:
+   Before starting this state machine, use the execute register to
+   force the execution of these two instructions:
+   	 pull
+	 mov	x, osr
+   The data pushed into the output FIFO by the controlling program is
+   the sync pattern, 0x96969696.
+*/
+	.program inmodem_xmit
+	.side_set 1 opt
+	.wrap_target
+loop1:	pull	ifempty noblock side 1	// start of bit cell, rising edge
+	out	y, 1
+	mov	pins, y		// if 0, falling edge
+	jmp	!y, loop1	// stay in this block if zero
+loop2:	pull	ifempty noblock side 0	// start of bit cell, falling edge
+	out	y, 1
+	mov	pins, !y	// if 0, rising edge
+	jmp	!y, loop2	// stay in this block if zero
+	.wrap
+
+/* Sync search and data receive
+   This is the receive byte framer, local clock or integral modem.
+   The bit clock used here is the one generated by the local
+   transmit or recovered by the integral modem receive bit recovery.
+   Apart from waiting for an irq rather than a falling edge on the
+   clock pin, this code is identical to that of modem_clk_recv above.
+
+   in_base is the receive data pin
+   sideset_base is the "in sync" LED pin
+   sideset_count is 1 (optional side set)
+   state machine clock: fast (minimally 8x the bit rate)
+   input fifo threshold is 32
+
+   Initialization:
+   Before starting this state machine, use the execute register to
+   force the execution of these three instructions:
+   	 pull
+	 mov	y, osr
+	 mov	isr, null
+   then set the fifo configuration to joined input fifos.  The data
+   pushed into the output FIFO by the controlling program is the sync
+   pattern, 0x96969696.
+
+   To go back to sync search, jump this state machine back to its
+   beginning address. 
+*/
+	.program local_clk_recv
+	.side_set 1 opt
+search:	wait	1 irq rxbit side 0  // indicate not in sync
+	in	pins, 1
+	mov	x, isr
+	jmp	x!=y, search
+	push	        side 1      // indicate in sync
+	.wrap_target
+	wait	1 irq rxbit
+	in	pins, 1
+	push	iffull noblock
+	.wrap
+
+/* Integral modem bit recovery
+   This is the bit clock and data recovery for the integral modem.
+   It sends the recovered bit stream to a pin which is output here
+   but is the input pin of the "local_clk_recv" state machine program.
+
+   in_base is the modulated receive data pin
+   jmp_pin is that same pin
+   out_base is the recovered data pin (for "local_clk_recv" to use as input)
+   out_count is 1
+   state machine clock is 16x the bit rate.
+*/
+	.program inmodem_rxbit
+wait0:	wait	0 pin 0 [11]	// wait for falling edge
+	mov	pins, !pins	// internal_rx from rxdata
+	irq	rxbit
+	jmp	pin, wait0	// If now high wait for low
+	// Note that the two loops (above and below) each take 15
+	// cycles, so we can handle rate errors up to +6 percent
+	.wrap_target
+wait1:	wait	 1 pin 0 [11]	// wait for rising edge
+	mov	 pins, pins    	// internal_rx from rxdata
+	irq	 rxbit
+	jmp	pin, wait0	// If now high wait for low
+	.wrap	
+
+/* Pulse stretcher
+   This generates a 50 ms pulse on the output pin to produce
+   an adequately visible flash of light from the connected LED.
+   To generate a flash, jump this state machine back to its
+   beginning address.  Note that a flash is generated when
+   this SM first starts, that's used as the device startup
+   indication.
+
+   set_base is the LED pin (e.g., 25 for the built-in LED)
+   set_count is 1
+   state machine clock is 2000 Hz.
+*/
+	.program pulse_stretch
+	set	pins, 1 [31]	// LED on
+	nop	[31]
+	.wrap_target
+	set	pins, 0
+	.wrap

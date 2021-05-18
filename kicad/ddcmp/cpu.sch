@@ -1,0 +1,376 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 2 4
+Title "DDCMP Framer"
+Date "2021-05-17"
+Rev "A"
+Comp "AK Design"
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Wire Wire Line
+	5250 2750 5050 2750
+Wire Wire Line
+	5050 2750 5050 3250
+Wire Wire Line
+	6650 2750 6850 2750
+$Comp
+L power:GND #PWR0101
+U 1 1 60A51795
+P 5050 4750
+F 0 "#PWR0101" H 5050 4500 50  0001 C CNN
+F 1 "GND" H 5055 4577 50  0000 C CNN
+F 2 "" H 5050 4750 50  0001 C CNN
+F 3 "" H 5050 4750 50  0001 C CNN
+	1    5050 4750
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0102
+U 1 1 60A5194C
+P 6850 4750
+F 0 "#PWR0102" H 6850 4500 50  0001 C CNN
+F 1 "GND" H 6855 4577 50  0000 C CNN
+F 2 "" H 6850 4750 50  0001 C CNN
+F 3 "" H 6850 4750 50  0001 C CNN
+	1    6850 4750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6850 2750 6850 3250
+Wire Wire Line
+	6650 3250 6850 3250
+Connection ~ 6850 3250
+Wire Wire Line
+	6850 3250 6850 3750
+Wire Wire Line
+	6650 3750 6850 3750
+Connection ~ 6850 3750
+Wire Wire Line
+	6850 3750 6850 4250
+Wire Wire Line
+	6650 4250 6850 4250
+Connection ~ 6850 4250
+Wire Wire Line
+	6850 4250 6850 4750
+Wire Wire Line
+	5250 3250 5050 3250
+Connection ~ 5050 3250
+Wire Wire Line
+	5050 3250 5050 3750
+Wire Wire Line
+	5250 3750 5050 3750
+Connection ~ 5050 3750
+Wire Wire Line
+	5050 3750 5050 4250
+Wire Wire Line
+	5250 4250 5050 4250
+Connection ~ 5050 4250
+Wire Wire Line
+	5050 4250 5050 4750
+Wire Wire Line
+	6650 2950 7000 2950
+Text GLabel 7200 2950 2    50   UnSpc ~ 0
+V3_3
+$Comp
+L power:GND #PWR0103
+U 1 1 60A52F43
+P 5950 4800
+F 0 "#PWR0103" H 5950 4550 50  0001 C CNN
+F 1 "GND" H 5955 4627 50  0000 C CNN
+F 2 "" H 5950 4800 50  0001 C CNN
+F 3 "" H 5950 4800 50  0001 C CNN
+	1    5950 4800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5950 4800 5950 4650
+$Comp
+L Connector_Generic:Conn_01x06 J1
+U 1 1 60AB089C
+P 3100 2350
+F 0 "J1" H 3018 2767 50  0000 C CNN
+F 1 "UART" H 3018 2676 50  0000 C CNN
+F 2 "ddcmp_parts:Pin_Header_Straight_1x06_Pitch2.54mm" H 3100 2350 50  0001 C CNN
+F 3 "~" H 3100 2350 50  0001 C CNN
+	1    3100 2350
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	5050 2450 5050 2650
+Wire Wire Line
+	5050 2650 5250 2650
+Text Notes 3300 2050 0    50   ~ 0
+Debug connector\n(optional)
+Wire Wire Line
+	3300 2450 5050 2450
+Wire Wire Line
+	3300 2550 5250 2550
+$Comp
+L power:GND #PWR0108
+U 1 1 60AB5E1B
+P 3800 2250
+F 0 "#PWR0108" H 3800 2000 50  0001 C CNN
+F 1 "GND" H 3805 2077 50  0000 C CNN
+F 2 "" H 3800 2250 50  0001 C CNN
+F 3 "" H 3800 2250 50  0001 C CNN
+	1    3800 2250
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3800 2250 3800 2150
+Wire Wire Line
+	3800 2150 3300 2150
+$Comp
+L Device:LED D1
+U 1 1 60AC703D
+P 2450 3300
+F 0 "D1" V 2489 3380 50  0000 L CNN
+F 1 "LED" V 2398 3380 50  0000 L CNN
+F 2 "LEDs:LED_D3.0mm" H 2450 3300 50  0001 C CNN
+F 3 "~" H 2450 3300 50  0001 C CNN
+	1    2450 3300
+	0    1    -1   0   
+$EndComp
+$Comp
+L Device:LED D2
+U 1 1 60AC83AC
+P 2800 3300
+F 0 "D2" V 2839 3380 50  0000 L CNN
+F 1 "LED" V 2748 3380 50  0000 L CNN
+F 2 "LEDs:LED_D3.0mm" H 2800 3300 50  0001 C CNN
+F 3 "~" H 2800 3300 50  0001 C CNN
+	1    2800 3300
+	0    1    -1   0   
+$EndComp
+$Comp
+L Device:LED D3
+U 1 1 60AC89D4
+P 3150 3300
+F 0 "D3" V 3189 3380 50  0000 L CNN
+F 1 "LED" V 3098 3380 50  0000 L CNN
+F 2 "LEDs:LED_D3.0mm" H 3150 3300 50  0001 C CNN
+F 3 "~" H 3150 3300 50  0001 C CNN
+	1    3150 3300
+	0    1    -1   0   
+$EndComp
+$Comp
+L ddcmp_symbols:R_US R3
+U 1 1 60ACA428
+P 2450 3700
+F 0 "R3" H 2518 3746 50  0000 L CNN
+F 1 "150" H 2518 3655 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 2490 3690 50  0001 C CNN
+F 3 "" H 2450 3700 50  0001 C CNN
+	1    2450 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L ddcmp_symbols:R_US R4
+U 1 1 60ACAA45
+P 2800 3700
+F 0 "R4" H 2868 3746 50  0000 L CNN
+F 1 "150" H 2868 3655 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 2840 3690 50  0001 C CNN
+F 3 "" H 2800 3700 50  0001 C CNN
+	1    2800 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L ddcmp_symbols:R_US R5
+U 1 1 60ACB075
+P 3150 3700
+F 0 "R5" H 3218 3746 50  0000 L CNN
+F 1 "150" H 3218 3655 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 3190 3690 50  0001 C CNN
+F 3 "" H 3150 3700 50  0001 C CNN
+	1    3150 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0111
+U 1 1 60ACBBD7
+P 2450 3950
+F 0 "#PWR0111" H 2450 3700 50  0001 C CNN
+F 1 "GND" H 2455 3777 50  0000 C CNN
+F 2 "" H 2450 3950 50  0001 C CNN
+F 3 "" H 2450 3950 50  0001 C CNN
+	1    2450 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0112
+U 1 1 60ACC03F
+P 2800 3950
+F 0 "#PWR0112" H 2800 3700 50  0001 C CNN
+F 1 "GND" H 2805 3777 50  0000 C CNN
+F 2 "" H 2800 3950 50  0001 C CNN
+F 3 "" H 2800 3950 50  0001 C CNN
+	1    2800 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0113
+U 1 1 60ACC9AB
+P 3150 3950
+F 0 "#PWR0113" H 3150 3700 50  0001 C CNN
+F 1 "GND" H 3155 3777 50  0000 C CNN
+F 2 "" H 3150 3950 50  0001 C CNN
+F 3 "" H 3150 3950 50  0001 C CNN
+	1    3150 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3150 3950 3150 3850
+Wire Wire Line
+	2800 3950 2800 3850
+Wire Wire Line
+	2450 3950 2450 3850
+Wire Wire Line
+	2450 3550 2450 3450
+Wire Wire Line
+	2800 3550 2800 3450
+Wire Wire Line
+	3150 3550 3150 3450
+Wire Wire Line
+	2450 3150 2450 2850
+Wire Wire Line
+	2800 2950 2800 3150
+Wire Wire Line
+	3150 3150 3150 3050
+Wire Wire Line
+	2450 2850 5250 2850
+Wire Wire Line
+	2800 2950 5250 2950
+Wire Wire Line
+	3150 3050 5250 3050
+Wire Wire Line
+	6650 4450 7200 4450
+Wire Wire Line
+	6650 4350 7200 4350
+Wire Wire Line
+	6650 4150 7200 4150
+Wire Wire Line
+	5250 3650 4750 3650
+Wire Wire Line
+	5250 3850 4750 3850
+Wire Wire Line
+	5250 3950 4750 3950
+Wire Wire Line
+	5250 4050 4750 4050
+Wire Wire Line
+	5250 4150 4750 4150
+Wire Wire Line
+	5250 4350 4750 4350
+Wire Wire Line
+	5250 4450 4750 4450
+Wire Wire Line
+	6650 4050 7200 4050
+Text HLabel 7200 4050 2    50   3State ~ 0
+IM_SRL
+Text HLabel 7200 4150 2    50   Output ~ 0
+IM_ENABLE
+Text HLabel 7200 4350 2    50   Output ~ 0
+IM_TXDATA
+Text HLabel 7200 4450 2    50   Input ~ 0
+IM_RXDATA
+Text HLabel 4750 3650 0    50   Output ~ 0
+RS232_CLKEN
+Text HLabel 4750 3850 0    50   Output ~ 0
+RS232_ENABLE
+Text HLabel 4750 3950 0    50   Output ~ 0
+RS232_CLKOUT
+Text HLabel 4750 4050 0    50   Input ~ 0
+RS232_TXCLK
+Text HLabel 4750 4150 0    50   Input ~ 0
+RS232_RXDATA
+Text HLabel 4750 4350 0    50   Input ~ 0
+RS232_RXCLK
+Text HLabel 4750 4450 0    50   Output ~ 0
+RS232_TXDATA
+Wire Wire Line
+	5250 3350 5150 3350
+Wire Wire Line
+	5250 3450 5150 3450
+Wire Wire Line
+	6650 3650 6750 3650
+NoConn ~ 6750 3650
+NoConn ~ 5150 3350
+NoConn ~ 5150 3450
+$Comp
+L Connector_Generic:Conn_01x02 J4
+U 1 1 60AFBDD5
+P 7400 3750
+F 0 "J4" H 7480 3742 50  0000 L CNN
+F 1 "LOOPTEST" H 7480 3651 50  0000 L CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x02_Pitch2.54mm" H 7400 3750 50  0001 C CNN
+F 3 "~" H 7400 3750 50  0001 C CNN
+	1    7400 3750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7200 3750 6850 3750
+Wire Wire Line
+	7200 3850 6650 3850
+NoConn ~ 3300 2250
+NoConn ~ 3300 2350
+NoConn ~ 3300 2650
+NoConn ~ 5250 3150
+NoConn ~ 5250 3550
+NoConn ~ 6650 2550
+NoConn ~ 6650 2650
+NoConn ~ 6650 2850
+NoConn ~ 6650 3050
+NoConn ~ 6650 3150
+NoConn ~ 6650 3350
+NoConn ~ 6650 3450
+NoConn ~ 6650 3550
+NoConn ~ 6650 3950
+NoConn ~ 5100 4700
+NoConn ~ 5850 4650
+NoConn ~ 6050 4650
+$Comp
+L power:PWR_FLAG #FLG0101
+U 1 1 60B1F675
+P 6850 2750
+F 0 "#FLG0101" H 6850 2825 50  0001 C CNN
+F 1 "PWR_FLAG" H 6850 2923 50  0000 C CNN
+F 2 "" H 6850 2750 50  0001 C CNN
+F 3 "~" H 6850 2750 50  0001 C CNN
+	1    6850 2750
+	1    0    0    -1  
+$EndComp
+Connection ~ 6850 2750
+$Comp
+L power:PWR_FLAG #FLG0102
+U 1 1 60B1F957
+P 7000 2950
+F 0 "#FLG0102" H 7000 3025 50  0001 C CNN
+F 1 "PWR_FLAG" H 7000 3123 50  0000 C CNN
+F 2 "" H 7000 2950 50  0001 C CNN
+F 3 "~" H 7000 2950 50  0001 C CNN
+	1    7000 2950
+	1    0    0    -1  
+$EndComp
+Connection ~ 7000 2950
+Wire Wire Line
+	7000 2950 7200 2950
+$Comp
+L ddcmp_symbols:Raspberry_Pico U?
+U 1 1 60A47CFF
+P 5950 3500
+AR Path="/60A47CFF" Ref="U?"  Part="1" 
+AR Path="/60A46E24/60A47CFF" Ref="U1"  Part="1" 
+F 0 "U1" H 5950 4715 50  0000 C CNN
+F 1 "Pico" H 5950 4624 50  0000 C CNN
+F 2 "RPi_Pico:RPi_Pico_SMD_TH" V 5950 3500 50  0001 C CNN
+F 3 "" H 5950 3500 50  0001 C CNN
+	1    5950 3500
+	1    0    0    -1  
+$EndComp
+$EndSCHEMATC

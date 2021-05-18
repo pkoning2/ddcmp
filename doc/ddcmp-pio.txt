@@ -1,0 +1,99 @@
+PIO (RP2040) implementation of DDCMP framing
+
+Sync clocking: transmit data changes on falling edge of bit clock;
+receive data is latched on rising edge.  Choice of local clock source
+(DCE mode) or clock input (DTE mode).
+
+Integral modem standard speeds: 56k, 250k, 500k, 1M bps.  For encoding
+details see DMC line unit manual.  The framer includes the modem
+function implemented in (PIO) software.
+
+---
+
+USB protocol to host
+
+The framer is a DDCMP device, communication class, emulating an
+Ethernet NIC.  The NIC hardware address is hardcoded aa-00-03-04-05-06
+(an unused address from a range assigned to DEC and then rendered
+obsolete by 802 -- see ether-i.pdf).  The device then appears as
+another Ethernet node connected to that NIC, with hardcoded address
+aa-00-03-04-05-07.
+
+Communication with the framer uses protocol type is 60-06 (DEC
+protocol type assigned to "Customer use").
+
+Payload is either a DDCMP frame, or a command/status packet.  The
+encoding is slightly different for inbound (received data to host)
+vs. outbound (transmitted data from host).
+
+Outbound payloads are simply DDCMP frames as encoded on the wire,
+except that the CRC fields are omitted (so the DDCMP header is only 6
+bytes).  The framer supplies header and (if applicable) data CRC
+fields, as well as leading SYN and trailing DEL bytes.
+
+Inbound payloads begin with a 2-byte receive status value, followed by
+the received DDCMP frame exactly as received, including the CRC
+fields.  Note that the framer implements CRC checking; the host
+normally would not look at the CRC bytes but simply use the status
+value to learn whether the packet is good or bad.
+
+In either direction, we ignore the minimum frame length of Ethernet;
+only the needed bytes are sent since the USB emulated Ethernet NIC
+does not appear to object to undersized frames.
+
+Command/status packets begin with 0x11 (DC1) which is not a DDCMP
+frame start value.  Outbound they carry commands to the adapter;
+inbound they carry status and counters.  Note that the inbound status
+packet is preceded by a receive status word, as always.
+
+Receive status word values:
+0: good frame
+1: Header CRC error
+2: Data CRC error
+3: Frame too long (if so, the entire data field is absent)
+
+Command packets start with 0x11.  The next byte is the command:
+0: status request
+1: start
+2: stop
+All commands produce a status packet in reply (the status request
+simply is a "no state change" command).
+
+For start, configuration settings follow:
+Flag bits (2 bytes):
+0: DCE mode (if 0, DTE mode)
+1: Integral modem (if 0, RS232)
+2: Local clock (if 0, modem supplies clock).  Not applicable for
+integral modem
+3: Internal loopback.  Implies local clock if not integral modem.
+
+Speed: (4 bytes):
+This specifies the bit rate in bits per second.  For RS232, it is the
+frequency of the receive and transmit clock signals (if local clock is
+specified).  For integral modem, it is the transmit speed and the
+nominal receive speed; actual receive clocking is from the incoming
+data, which must match the specified rate +/- 6%.  Speed is not
+applicable for RS232 modem supplied clock, in which the bit clocking
+is entirely under control of the modem.  Note that RS232 is not
+officially specified for high speeds; it works well at 56 kbps with
+short cables, and can perhaps be made to work at 250 kbps, but it
+certainly won't run at 1 Mbps since the required rise/fall times are
+too slow for that.  Standard integral modem speeds go as high as 1
+Mbps; the adapter can go a lot faster but standard DEC hardware does
+not.
+
+Status packet starts with 0x11, followed by state and counter data:
+
+state (1 byte): on = 1, off = 0.
+flags (2 bytes): as described above for the Start command
+speed (4 bytes): as described above.  Not supplied for RS232 modem
+clock case (where the speed is not known).
+Counters -- all are 4 bytes and wrap on overflow:
+received good frames
+transmitted frames
+received good bytes
+transmitted bytes
+header crc errors
+data crc errors
+frame too long errors
+buffer unavailable errors

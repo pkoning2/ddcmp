@@ -1,0 +1,45 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP ADT1-6T
+D 0.06-160MHz 1:1 RF Transformer, Unbalanced to Balanced Center Tap, CD542
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT1-6T+.pdf
+$ENDCMP
+#
+$CMP ADT16-6T
+D 0.10-400MHz 1:16 RF Transformer, Unbalanced to Balanced Center Tap, CD542
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT16-6T+.pdf
+$ENDCMP
+#
+$CMP ADT2-71T
+D 0.40-500MHz 1:2 RF Transformer, Unbalanced to Balanced Center Tap, CD542
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT2-71T+.pdf
+$ENDCMP
+#
+$CMP ADT4-5WT
+D 1-650MHz 1:4 RF Transformer, Unbalanced to Balanced Center Tap, CD637
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT4-5WT+.pdf
+$ENDCMP
+#
+$CMP ADT4-6T
+D 1.5-70MHz 1:4 RF Transformer, Unbalanced to Balanced Center Tap, CD637
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT4-6T+.pdf
+$ENDCMP
+#
+$CMP ADT8-1T
+D 8-775MHz 1:8 RF Transformer, Unbalanced to Balanced Center Tap, CD637
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADT8-1T+.pdf
+$ENDCMP
+#
+$CMP Conn_Coaxial
+D coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, ...)
+K BNC SMA SMB SMC coaxial connector CINCH RCA
+F  ~
+$ENDCMP
+#
+#End Doc Library
