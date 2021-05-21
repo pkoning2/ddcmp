@@ -61,11 +61,16 @@ simply is a "no state change" command).
 
 For start, configuration settings follow:
 Flag bits (2 bytes):
-0: DCE mode (if 0, DTE mode)
-1: Integral modem (if 0, RS232)
-2: Local clock (if 0, modem supplies clock).  Not applicable for
+0: Integral modem (if 0, RS232)
+1: Local clock (if 0, modem supplies clock).  Not applicable for
 integral modem
-3: Internal loopback.  Implies local clock if not integral modem.
+2: Internal loopback.  Implies local clock if not integral modem.
+3: Built-in selftest.  Implies loopback.  In this mode, transmit
+requests are ignored and received data is counted but not delivered.
+The framer internally generates a stream of DDCMP messages (500 bytes
+long) to exercise the transmit and receive data paths.  Status
+requests still work so progress can be monitored via status requests,
+and a stop command will terminate the test.
 
 Speed: (4 bytes):
 This specifies the bit rate in bits per second.  For RS232, it is the

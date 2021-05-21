@@ -8,7 +8,7 @@ Title "DDCMP Framer"
 Date "2021-05-17"
 Rev "A"
 Comp "AK Design"
-Comment1 ""
+Comment1 "Copyright © 2021 by Paul Koning, NI1D"
 Comment2 ""
 Comment3 ""
 Comment4 ""
@@ -663,20 +663,12 @@ Text Label 3650 4850 2    50   ~ 0
 TXD
 Wire Wire Line
 	2100 6550 1700 6550
-Text Label 1700 6550 2    50   ~ 0
-CLKOUT
 Wire Wire Line
 	2100 6150 1700 6150
-Text Label 1700 6150 2    50   ~ 0
-CLKOUT
 Wire Wire Line
 	4100 5150 3650 5150
 Wire Wire Line
 	4100 4750 3650 4750
-Text Label 3650 4750 2    50   ~ 0
-TXCLK
-Text Label 3650 5150 2    50   ~ 0
-RXCLK
 NoConn ~ 4100 4550
 NoConn ~ 4100 4950
 NoConn ~ 4100 5050
@@ -740,4 +732,28 @@ Wire Wire Line
 Connection ~ 5650 6650
 Wire Wire Line
 	5650 6650 5650 6850
+Text Label 1700 6550 2    50   ~ 0
+TXCLK
+Text Label 1700 6150 2    50   ~ 0
+RXCLK
+Text Label 3650 4750 2    50   ~ 0
+CLKOUT
+Text Label 3650 5150 2    50   ~ 0
+CLKOUT
+Text Notes 1700 6250 0    50   ~ 0
+RTS
+Text Notes 1900 5550 0    50   ~ 0
+DTR
+Text Notes 5500 5450 0    50   ~ 0
+DTR
+Text Notes 5700 5850 0    50   ~ 0
+RTS
+Text Notes 3900 5850 0    50   ~ 0
+CD
+Text Notes 3900 5450 0    50   ~ 0
+DSR
+Text Notes 3900 5250 0    50   ~ 0
+CTS
+Text Notes 3900 6150 0    50   ~ 0
+RI
 $EndSCHEMATC

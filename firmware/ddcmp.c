@@ -17,6 +17,8 @@
 #include <pico/multicore.h>
 #include <hardware/clocks.h>
 
+#define VERSION "DDCMP Framer V1.0"
+
 #ifdef DEBUG
 // Debugging, if enabled, uses the UART at the default pins (pin 1 and
 // 2, GPIO 0 and GPIO 1).
@@ -61,7 +63,7 @@ volatile bool core1_active = false;
 volatile bool rx_enabled = false;
 
 // Selftest mode active
-bool bist = true;//false;
+bool bist = false;
 
 // Pin numbers (GPIOn numbers, to be precise)
 // Clock/data pins
@@ -74,17 +76,14 @@ bool bist = true;//false;
 #define IMRXDATA 17     // Integral modem receive data input
 // Enable pins
 #define RS232EN 10      // RS-232 output enable
-#define RSCLKEN 9       // RS-232 clock output enable
 #define IMEN    18      // Integral Modem enable
-// Slew control
-#define IMSRL   16      // Integral modem transmit slew control (three state)
 // Loopback test control
 #define LOOPTEST 4      // Pull low to force power on selftest
 // LED pin assignments
-#define SYNLED   20     // In-sync indicator LED output
-#define RXLED    21     // Packet received LED
+#define SYNLED   26     // In-sync indicator LED output
+#define RXLED    27     // Packet received LED
 #define ACTLED   25     // Device is active (RPico built-in LED)
-#define TXLED    22     // Packet sent LED
+#define TXLED    28     // Packet sent LED
 // No-connect pins.  These are used when a signal needs to get from
 // one state machine to another.  That applies to integral modem
 // receive data (from demodulator), as well as to the loopback case.
@@ -103,11 +102,12 @@ const uint8_t opins[] = {
     CLKOUT,
     IMTXDATA,
     RS232EN,
-    RSCLKEN,
+    IMEN,
     SYNLED,
     RXLED,
     ACTLED,
     TXLED,
+    RXRECDATA,
     LCPIN,
     LDPIN
 };
@@ -133,11 +133,13 @@ const uint8_t opins[] = {
 #define RBUFS 8         // Number of buffers in receive ring
 #define TBUFS 8         // Number of buffers in transmit ring
 
-// Operating mode flags
-#define DCE_MODE        1
-#define INT_MODEM       2
-#define RS232_LOCAL_CLK 4
-#define INT_LOOPBACK    8
+// Operating mode flags.  BIST is not normally requested from the
+// host, but is generated internally if the LOOPTEST pin is pulled low
+// at powerup.
+#define INT_MODEM       1
+#define RS232_LOCAL_CLK 2
+#define INT_LOOPBACK    4
+#define BIST            8   // implies INT_LOOPBACK
 
 // DDCMP framing state machine state codes
 enum ddcmp_state
@@ -251,6 +253,7 @@ struct status_msg_t
     uint32_t len_err;
     uint32_t nobuf_err;
     uint32_t last_cmd_sts;          // Response code from last command
+    char version[sizeof (VERSION)];
 };
 
 enum last_cmd_status_t
@@ -657,8 +660,8 @@ static void setup_pios (uint mflags, uint speed)
     uint offset;
     pio_sm_config rxconfig, txconfig, blinkconfig, imconfig;
     int rxpin, txpin, clkpin;
-    
-    DPRINTF ("Setting up PIO state machines, flags %d, speed %d\n",
+
+    DPRINTF ("Setting up PIO state machines, flags 0x%02x, speed %d\n",
             mflags, speed);
     pio_clear_instruction_memory (pio0);
     pio_clear_instruction_memory (pio1);
@@ -704,28 +707,29 @@ static void setup_pios (uint mflags, uint speed)
             DPRINTF ("Internal loopback mode\n");
             rxpin = txpin = LDPIN;
         }
+        else
+        {
+            DPRINTF ("Setting integral modem enable\n");
+            gpio_put (IMEN, true);
+        }
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for integral modem case.
         rxconfig = local_clk_recv_config (offset, RXRECDATA);
-        DPRINTF ("Receive SM configured\n");
         offset = pio_add_program (TXPIO, &inmodem_xmit_program);
         txconfig = inmodem_xmit_config (offset, speed, txpin);
-        DPRINTF ("Transmit SM configured\n");
         offset = pio_add_program (IMBITPIO, &inmodem_rxbit_program);
         imconfig = inmodem_rxbit_config (offset, speed, rxpin);
         pio_sm_init (IMBITPIO, IMBITSM, offset, &imconfig);
-        DPRINTF ("Receive clock/data recovery SM configured\n");
         // Set pindirs
         pio_sm_set_consecutive_pindirs (RXPIO, RXSM, RXRECDATA, 1, false);
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, txpin, 1, true);
         pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, rxpin, 1, false);
         pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, RXRECDATA, 1, true);
-        DPRINTF ("Pindirs set\n");
         // Start the bit stream recovery SM
         pio_sm_set_enabled (IMBITPIO, IMBITSM, true);
         DPRINTF ("Bit recovery SM active\n");
     }
-    else if (mflags & (RS232_LOCAL_CLK | INT_LOOPBACK))
+    else if (mflags & RS232_LOCAL_CLK)
     {
         // RS-232 with clock generated locally (output).  We want
         // local_clk_xmit, local_clk_recv.  Internal loopback, when
@@ -739,6 +743,11 @@ static void setup_pios (uint mflags, uint speed)
             DPRINTF ("Internal loopback mode\n");
             rxpin = txpin = LDPIN;
             clkpin = LCPIN;
+        }
+        else
+        {
+            DPRINTF ("Enabling RS-232\n");
+            gpio_put (RS232EN, true);
         }
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for RS-232 case.
@@ -755,6 +764,8 @@ static void setup_pios (uint mflags, uint speed)
         // RS-232, modem supplied clock.  We want modem_clk_xmit,
         // modem_clk_recv.
         DPRINTF ("Initializing RS-232, modem supplied clock\n");
+        DPRINTF ("Enabling RS-232\n");
+        gpio_put (RS232EN, true);
         offset = pio_add_program (RXPIO, &modem_clk_recv_program);
         rxconfig = modem_clk_recv_config (offset);
         offset = pio_add_program (TXPIO, &modem_clk_xmit_program);
@@ -771,7 +782,6 @@ static void setup_pios (uint mflags, uint speed)
     pio_sm_init (RXPIO, RXSM, rxtop, &rxconfig);
     DPRINTF ("Starting TX state machine\n");
     pio_sm_init (TXPIO, TXSM, txtop, &txconfig);
-    DPRINTF ("TX state machine active\n");
 
     // All the receive cases have this output pin in common:
     pio_sm_set_consecutive_pindirs (RXPIO, RXSM, SYNLED, 1, true);
@@ -805,36 +815,7 @@ static void setup_pios (uint mflags, uint speed)
     pio_sm_exec (TXPIO, TXSM, pio_encode_pull (false, false));
     pio_sm_exec (TXPIO, TXSM, pio_encode_mov (pio_x, pio_osr));
     pio_sm_set_enabled (TXPIO, TXSM, true);
-
-    DPRINTF ("Configuring DMA\n");
-    // Initialize receive buffers to be all free
-    for (i = 0; i < RBUFS; i++)
-    {
-        rbuf_ring[i].stat = BUF_EMPTY;
-    }
-    rbuf_empty = rbuf_fill = 0;
-
-    // Build the DMA config settings (DMA CTRL register value) for the
-    // transmit buffer DMA: 8 bit transfers, no write increment, data
-    // request is transmit state machine output FIFO.
-    dma_channel_config tx = dma_channel_get_default_config (txdma);
-    channel_config_set_transfer_data_size (&tx, DMA_SIZE_8);
-    channel_config_set_dreq (&tx, pio_get_dreq (TXPIO, TXSM, true));
-
-    // Load the two fixed DMA values: control register, write address
-    // register.
-    dma_channel_set_config (txdma, &tx, false);
-    dma_channel_set_write_addr (txdma, &(TXPIO->txf[TXSM]), false);
-
-    // Enable IRQ0
-    dma_channel_set_irq0_enabled (txdma, true);
-    
-    // Initialize the transmit ring indices, count, and full flag
-    tbuf_empty = tbuf_fill = 0;
-    tbuf_count = 0;
-    tx_full = false;
-    
-    DPRINTF ("DDCMP active\n");
+    DPRINTF ("TX active\n");
 }
 
 // Set up core 1.  Note this is only done once since CPU1 can't be
@@ -896,22 +877,114 @@ static void stop_ddcmp (void)
 #else
 #define FIRST 0
 #endif
+    // Initialize all pins and set them all to be pulled down, so
+    // no-connect pins are in a well defined state.
     for (i = FIRST; i <= 29; i++)
     {
         gpio_init (i);
+        gpio_pull_down (i);
     }
     // Set direction for output pins.  Note that gpio_init supplies an
-    // output value of zero as part of its initialization.
+    // output value of zero as part of its initialization.  Also turn
+    // off the pulldown since we're now driving the pin.
     for (i = 0; i < sizeof (opins); i++)
     {
         pin = opins[i];
         gpio_set_dir (pin, true);
+        gpio_disable_pulls (pin);
     }
     // Set LED output drive strength to 12 mA
     gpio_set_drive (SYNLED, PADS_BANK0_GPIO0_DRIVE_VALUE_12MA);
     gpio_set_drive (RXLED, PADS_BANK0_GPIO0_DRIVE_VALUE_12MA);
     gpio_set_drive (ACTLED, PADS_BANK0_GPIO0_DRIVE_VALUE_12MA);
     gpio_set_drive (TXLED, PADS_BANK0_GPIO0_DRIVE_VALUE_12MA);
+    // Pull up the LOOPTEST pin, it is active-low.
+    gpio_pull_up (LOOPTEST);
+}
+
+static void start_ddcmp (uint mflags, uint speed)
+{
+    int i;
+    int maxmul = 4;
+
+    // Fail if already active
+    if (rx_enabled)
+    {
+        status_msg.last_cmd_sts = CMD_ACTIVE;
+        return;
+    }
+    // BIST implies loopback.  If loopback is requested but neither
+    // internal modem nor local clock is requested, set local clock.
+    if (mflags & BIST)
+    {
+        mflags |= INT_LOOPBACK;
+        bist = true;
+    }
+    else
+    {
+        bist = false;
+    }
+    if (mflags & INT_LOOPBACK)
+    {
+        if ((mflags & (INT_MODEM | RS232_LOCAL_CLK)) == 0)
+        {
+            mflags |= RS232_LOCAL_CLK;
+        }
+    }
+    // validate arguments
+    if (mflags & INT_MODEM)
+    {
+        // Internal modem
+        maxmul = 16;
+        if (speed == 0 && (mflags & INT_LOOPBACK) != 0)
+        {
+            // For internal loopback, supply default speed of 1 Mbps
+            speed = 1000000;
+        }
+    }
+    if ((mflags & (INT_MODEM | RS232_LOCAL_CLK)) != 0 &&
+        (clkdiv (speed * 4) > 65535 ||
+         clkdiv (speed * maxmul) < 1))
+    {
+        DPRINTF ("speed out of range, %d\n", speed);
+        status_msg.last_cmd_sts = CMD_BAD_SPEED;
+        return;
+    }
+    // Initialize receive buffers to be all free
+    for (i = 0; i < RBUFS; i++)
+    {
+        rbuf_ring[i].stat = BUF_EMPTY;
+    }
+    rbuf_empty = rbuf_fill = 0;
+
+    setup_pios (mflags, speed);
+
+    DPRINTF ("Configuring DMA\n");
+    // Build the DMA config settings (DMA CTRL register value) for the
+    // transmit buffer DMA: 8 bit transfers, no write increment, data
+    // request is transmit state machine output FIFO.
+    dma_channel_config tx = dma_channel_get_default_config (txdma);
+    channel_config_set_transfer_data_size (&tx, DMA_SIZE_8);
+    channel_config_set_dreq (&tx, pio_get_dreq (TXPIO, TXSM, true));
+
+    // Load the two fixed DMA values: control register, write address
+    // register.
+    dma_channel_set_config (txdma, &tx, false);
+    dma_channel_set_write_addr (txdma, &(TXPIO->txf[TXSM]), false);
+
+    // Enable IRQ0
+    dma_channel_set_irq0_enabled (txdma, true);
+    
+    // Initialize the transmit ring indices, count, and full flag
+    tbuf_empty = tbuf_fill = 0;
+    tbuf_count = 0;
+    tx_full = false;
+    rx_enabled = true;
+    status_msg.on = true;
+    start_cpu1 ();
+    status_msg.last_cmd_sts = CMD_OK;
+
+    DPRINTF ("DDCMP active\n");
 }
 
 #ifdef DEBUG
@@ -955,7 +1028,7 @@ void handle_rbuf (void)
 {
     struct ddcmp_rxframe *df = &rbuf_ring[rbuf_empty];
 
-    if (send_status && !bist)
+    if (send_status)
     {
         if (tud_network_can_xmit ())
         {
@@ -988,8 +1061,6 @@ void handle_rbuf (void)
 static void command (const void *_cmd, uint16_t size)
 {
     const struct command_msg_t *cmd = (const struct command_msg_t *) _cmd;
-    int maxmul = 4;
-    int speed;
     
     // Always reply with status
     send_status = true;
@@ -1005,37 +1076,7 @@ static void command (const void *_cmd, uint16_t size)
     case REQ_STATUS:
         break;
     case REQ_START:
-        // Fail if already active
-        if (rx_enabled)
-        {
-            status_msg.last_cmd_sts = CMD_ACTIVE;
-            return;
-        }
-        // validate arguments
-        speed = cmd->speed;
-        if (cmd->mflags & INT_MODEM)
-        {
-            // Internal modem
-            maxmul = 16;
-            if (speed == 0 && (cmd->mflags & INT_LOOPBACK) != 0)
-            {
-                // For internal loopback, supply default speed of 1 Mbps
-                speed = 1000000;
-            }
-        }
-        if ((cmd->mflags & (INT_MODEM | RS232_LOCAL_CLK | INT_LOOPBACK)) != 0 &&
-            (clkdiv (speed * 4) > 65535 ||
-             clkdiv (speed * maxmul) < 1))
-        {
-            DPRINTF ("speed out of range, %d\n", speed);
-            status_msg.last_cmd_sts = CMD_BAD_SPEED;
-            return;
-        }
-        setup_pios (cmd->mflags, speed);
-        rx_enabled = true;
-        status_msg.on = true;
-        start_cpu1 ();
-        status_msg.last_cmd_sts = CMD_OK;
+        start_ddcmp (cmd->mflags, cmd->speed);
         break;
     case REQ_STOP:
         rx_enabled = false;
@@ -1194,7 +1235,12 @@ bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
     }
     if (src[14] == SOH || src[14] == ENQ || src[14] == DLE)
     {
-        // Data, send it
+        // Data, send it.  But if BIST is active, silently discard all
+        // transmit requests.
+        if (bist)
+        {
+            return true;
+        }
         return transmit (src + 14, plen);
     }
     DPRINTF ("Unknown frame code %03o\n", src[14]);
@@ -1260,7 +1306,13 @@ void rndis_class_set_handler(uint8_t *data, int size)
 {
 }
 
-uint8_t bist_data[500] = {
+// The BIST messages are DDCMP Maintenance packets with 500 bytes of
+// payload.  There is a 4 byte sequence number at the start of the
+// payload, the rest is zero.  The low order 2 bytes of the sequence
+// number are also inserted into the header (in bytes normally zero in
+// maintenance messages) so we have the sequence number available when
+// reporting packets received with header CRC error.
+uint8_t bist_data[506] = {
     DLE, (sizeof (bist_data) - 6) & 0xff, (sizeof (bist_data) - 6) >> 8
 };
 uint32_t bist_seq;
@@ -1274,14 +1326,14 @@ static void send_bist_data (void)
         if (transmit (bist_data, sizeof (bist_data)))
         {
             bist_seq++;
+            if ((bist % 1000) == 0)
+            {
+                // Every 1000 frames, send status to the host
+                send_status = true;
+            }   
         }
     }
 }
-
-const struct command_msg_t bist_on =
-{
-    DLE, REQ_START, INT_LOOPBACK /*| INT_MODEM*/, 56000
-};
 
 // One-time initialization
 static void init_once (void)
@@ -1293,6 +1345,8 @@ static void init_once (void)
     status_msg.dc1 = DC1;
     status_msg.stat = DDCMP_OK;
     status_msg.on = false;
+    strcpy (status_msg.version, VERSION);
+    
     // No need to clear the counters since this buffer is static so
     // it's zeroed at program load.
 
@@ -1335,32 +1389,31 @@ int main ()
     
     init_once ();
 
+    // See if selftest is requested
+    if (gpio_get (LOOPTEST) == 0)
+    {
+        DPRINTF ("Selftest requested\n");
+        // We use the integral modem (since that's the most complex
+        // case) at max standard speed (1 Mb/s).
+        start_ddcmp (BIST | INT_MODEM, 1000000);
+    }
+    
     /* initialize TinyUSB */
-    if (bist)
-    {
-        command (&bist_on, sizeof (bist_on));
-    }
-    else
-    {
-        DPRINTF ("Initializing USB\n");
-        tusb_init();
-        send_status = true;
-    }
+    DPRINTF ("Initializing USB\n");
+    tusb_init();
+    send_status = true;
 
-    DPRINTF ("looking for received data\n");
+    DPRINTF ("Entering main loop\n");
     while (1) 
     {
         if (bist)
         {
             send_bist_data ();
         }
-        else
-        {
-            tud_task();
-        }
+        tud_task();
         handle_rbuf ();
         handle_tdone ();
     }
-    
+    // UNREACHABLE:
     return 0;
 }
