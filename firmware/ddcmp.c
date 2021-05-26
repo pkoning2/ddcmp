@@ -1,5 +1,5 @@
 //
-#define DEBUG 1
+#define DEBUG 0
 
 #define __packed 
 #define __aligned(x)
@@ -19,7 +19,7 @@
 
 #define VERSION "DDCMP Framer V1.0"
 
-#ifdef DEBUG
+#if DEBUG
 // Debugging, if enabled, uses the UART at the default pins (pin 1 and
 // 2, GPIO 0 and GPIO 1).
 #include <stdio.h>
@@ -72,13 +72,13 @@ bool bist = false;
 #define RXDATA  13      // RS232 receive data input
 #define RXCLKIN 14      // Receive clock input from modem, must be RXDATA+1
 #define CLKOUT  11      // RS232 clock output (RX/TX both) to DTE
-#define IMTXDATA 19     // Integral modem transmit data output
-#define IMRXDATA 17     // Integral modem receive data input
+#define IMTXDATA 17     // Integral modem transmit data output
+#define IMRXDATA 19     // Integral modem receive data input
 // Enable pins
 #define RS232EN 10      // RS-232 output enable
 #define IMEN    18      // Integral Modem enable
 // Loopback test control
-#define LOOPTEST 4      // Pull low to force power on selftest
+#define LOOPTEST 2      // Pull low to force power on selftest
 // LED pin assignments
 #define SYNLED   26     // In-sync indicator LED output
 #define RXLED    27     // Packet received LED
@@ -197,6 +197,8 @@ volatile bool tx_full = false;
 
 // DMA channel number
 int txdma;
+// DMA channel mask
+uint txdmask;
 // DMA channel CSR pointer
 volatile dma_channel_hw_t *txcsr;
 
@@ -332,7 +334,7 @@ static inline void txblink (void)
 
 static inline void buf_done (enum ddcmp_status stat)
 {
-    DPRINTF ("buffer %d (%d) done, status %d\n", rbuf_fill, rbuf_empty, stat);
+    DDPRINTF ("buffer %d (%d) done, status %d\n", rbuf_fill, rbuf_empty, stat);
     rbuf_ring[rbuf_fill].stat = stat;
     rbuf_fill = (rbuf_fill + 1) % RBUFS;
     rxblink ();
@@ -388,7 +390,7 @@ void ddcmp_cpu1 (void)
             rword >>= 8;
             if (ds != PKT_START || b != SYN)
             {
-                DDPRINTF ("state %d byte 0x%02x\n", ds, b);
+                DDPRINTF ("S%d D0x%02x\n", ds, b);
             }
             switch (ds)
             {
@@ -446,8 +448,6 @@ void ddcmp_cpu1 (void)
                         // Good CRC
                         if (ctrl || ds == PAYLOAD)
                         {
-                            status_msg.rxframes++;
-                            status_msg.rxbytes += frame->data_len;
                             buf_done (DDCMP_OK);
                             // Skip possible trailing DEL, then look
                             // for next frame
@@ -471,19 +471,20 @@ void ddcmp_cpu1 (void)
                     }
                     else
                     {
-                        // Bad CRC, report it and resync
+                        // Bad CRC, report it and resync if header CRC
                         if (ds == PAYLOAD)
                         {
                             status_msg.crc_err++;
                             buf_done (DDCMP_CRC);
+                            ds = DEL1;
                         }
                         else
                         {
                             status_msg.hcrc_err++;
                             buf_done (DDCMP_HCRC);
+                            syn_search ();
+                            ds = FLUSH;
                         }
-                        syn_search ();
-                        ds = FLUSH;
                     }
                 }
                 break;
@@ -522,8 +523,8 @@ static pio_sm_config modem_clk_xmit_config (uint offset)
     
     // Fast clock
     sm_config_set_clkdiv_int_frac (&c, 1, 0);
-    // FIFO: threshold 8, shift right, no autopull, joined
-    sm_config_set_out_shift (&c, true, false, 8);
+    // FIFO: threshold 32, shift right, no autopull, joined
+    sm_config_set_out_shift (&c, true, false, 32);
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // input: tx clock input pin
     sm_config_set_in_pins (&c, TXCLKIN);
@@ -563,8 +564,8 @@ static pio_sm_config local_clk_xmit_config (uint offset, uint speed,
 
     // clock from bit rate
     sm_config_set_clkdiv_freq (&c, speed * 4);
-    // FIFO: threshold 8, shift right, no autopull, joined
-    sm_config_set_out_shift (&c, true, false, 8);
+    // FIFO: threshold 32, shift right, no autopull, joined
+    sm_config_set_out_shift (&c, true, false, 32);
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // output: tx data
     sm_config_set_out_pins (&c, txpin, 1);
@@ -582,8 +583,8 @@ static pio_sm_config inmodem_xmit_config (uint offset, uint speed, int txpin)
     
     // clock from bit rate
     sm_config_set_clkdiv_freq (&c, speed * 4);
-    // FIFO: threshold 8 (for now), shift right, no autopull, joined
-    sm_config_set_out_shift (&c, true, false, 8);
+    // FIFO: threshold 32, shift right, no autopull, joined
+    sm_config_set_out_shift (&c, true, false, 32);
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // output: integral modem tx data
     // side set: ditto
@@ -645,13 +646,6 @@ static pio_sm_config pulse_stretch_config (uint offset)
     sm_config_set_set_pins (&c, RXLED, 1);
 
     return c;
-}
-
-static void dma_regs (void)
-{
-    DPRINTF ("txcsr (%p): %08x %08x %08x %08x\n", txcsr,
-             txcsr->al1_ctrl, txcsr->read_addr,
-             txcsr->write_addr, txcsr->transfer_count);
 }
 
 static void setup_pios (uint mflags, uint speed)
@@ -720,11 +714,13 @@ static void setup_pios (uint mflags, uint speed)
         offset = pio_add_program (IMBITPIO, &inmodem_rxbit_program);
         imconfig = inmodem_rxbit_config (offset, speed, rxpin);
         pio_sm_init (IMBITPIO, IMBITSM, offset, &imconfig);
-        // Set pindirs
+        // Set pindirs.  Note that output mode must be set after input
+        // mode, for pins that are used both ways, otherwise the pin
+        // ends up not having output enabled.
         pio_sm_set_consecutive_pindirs (RXPIO, RXSM, RXRECDATA, 1, false);
-        pio_sm_set_consecutive_pindirs (TXPIO, TXSM, txpin, 1, true);
         pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, rxpin, 1, false);
         pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, RXRECDATA, 1, true);
+        pio_sm_set_consecutive_pindirs (TXPIO, TXSM, txpin, 1, true);
         // Start the bit stream recovery SM
         pio_sm_set_enabled (IMBITPIO, IMBITSM, true);
         DPRINTF ("Bit recovery SM active\n");
@@ -754,7 +750,9 @@ static void setup_pios (uint mflags, uint speed)
         rxconfig = local_clk_recv_config (offset, rxpin);
         offset = pio_add_program (TXPIO, &local_clk_xmit_program);
         txconfig = local_clk_xmit_config (offset, speed, clkpin, txpin);
-        // Set pindirs
+        // Set pindirs.  Note that output mode must be set after input
+        // mode, for pins that are used both ways, otherwise the pin
+        // ends up not having output enabled.
         pio_sm_set_consecutive_pindirs (RXPIO, RXSM, rxpin, 1, false);
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, txpin, 1, true);
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, clkpin, 1, true);
@@ -864,15 +862,16 @@ static void stop_ddcmp (void)
     pio_clear_instruction_memory (pio1);
 
     // Make sure DMA is stopped
-    irq_set_enabled (DMA_IRQ_0, false);
+    hw_clear_bits (&dma_hw->inte0, txdmask);
     dma_channel_abort (txdma);
     tbuf_fill = tbuf_empty = tbuf_count = 0;
     // Clear any pending DMA interrupt.  Leave the interrupt disabled;
     // it will be enabled by transmit requests.
-    dma_hw->ints0 = 1 << DMA_IRQ_0;
+    dma_hw->ints0 = txdmask;
+    irq_clear (DMA_IRQ_0);
     
     // Set all pins to SIO, input.
-#ifdef DEBUG
+#if DEBUG
 #define FIRST 2
 #else
 #define FIRST 0
@@ -961,10 +960,10 @@ static void start_ddcmp (uint mflags, uint speed)
 
     DPRINTF ("Configuring DMA\n");
     // Build the DMA config settings (DMA CTRL register value) for the
-    // transmit buffer DMA: 8 bit transfers, no write increment, data
+    // transmit buffer DMA: 32 bit transfers, no write increment, data
     // request is transmit state machine output FIFO.
     dma_channel_config tx = dma_channel_get_default_config (txdma);
-    channel_config_set_transfer_data_size (&tx, DMA_SIZE_8);
+    channel_config_set_transfer_data_size (&tx, DMA_SIZE_32);
     channel_config_set_dreq (&tx, pio_get_dreq (TXPIO, TXSM, true));
 
     // Load the two fixed DMA values: control register, write address
@@ -974,6 +973,7 @@ static void start_ddcmp (uint mflags, uint speed)
 
     // Enable IRQ0
     dma_channel_set_irq0_enabled (txdma, true);
+    irq_set_enabled (DMA_IRQ_0, true);
     
     // Initialize the transmit ring indices, count, and full flag
     tbuf_empty = tbuf_fill = 0;
@@ -981,13 +981,16 @@ static void start_ddcmp (uint mflags, uint speed)
     tx_full = false;
     rx_enabled = true;
     status_msg.on = true;
+    status_msg.mflags = mflags;
+    status_msg.speed = speed;
     start_cpu1 ();
     status_msg.last_cmd_sts = CMD_OK;
+    gpio_put (ACTLED, true);
 
     DPRINTF ("DDCMP active\n");
 }
 
-#ifdef DEBUG
+#if DEBUG
 static uint8_t toprint (uint8_t c)
 {
 	if ((c > 31 && c < 127))// || c > 159)
@@ -1039,18 +1042,20 @@ void handle_rbuf (void)
     }
     if (df->stat != BUF_EMPTY)
     {
+        status_msg.rxframes++;
+        status_msg.rxbytes += df->data_len;
         if (bist)
         {
-            DPRINTF ("received frame %d, status %d, len %d, seq %d\n",
-                     rbuf_empty, df->stat, df->data_len,
-                     df->data[3] + (df->data[4] << 8));
+            DDPRINTF ("received frame %d, status %d, len %d, seq %d\n",
+                      rbuf_empty, df->stat, df->data_len,
+                      df->data[3] + (df->data[4] << 8));
             df->stat = BUF_EMPTY;
         }
         else
         {
             if (tud_network_can_xmit ())
             {
-                DPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
+                DDPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
                 tud_network_xmit (df->bufhdr, df->data_len + BUF_OFF);
             }
         }
@@ -1110,22 +1115,29 @@ void dma_done (void)
     int te;
     struct ddcmp_txframe *df;
 
+    DDPRINTF ("DMA done, count was %d, ctl %08x\n",
+              tbuf_count, txcsr->al1_ctrl);
+    
     // Clear the interrupt request
-    dma_hw->ints0 = 1 << DMA_IRQ_0;
+    dma_hw->ints0 = txdmask;
+    irq_clear (DMA_IRQ_0);
     
     // Advance the empty pointer
     tbuf_empty = te = (tbuf_empty + 1) % TBUFS;
-    
-    DPRINTF ("DMA done, count was %d\n", tbuf_count);
     
     // Decrement pending transmit count
     if (--tbuf_count != 0)
     {
         // Still non-zero, start up another DMA
-        DPRINTF ("starting another DMA for %d\n", te);
+        DDPRINTF ("irq: starting another DMA for %d\n", te);
         df = &tbuf_ring[te];
-        txcsr->al1_read_addr = (uint32_t) (df->data);
+        txcsr->al1_read_addr = (uint32_t) (df->syn);
+        assert ((txcsr->al1_ctrl & (1<<24)) == 0);
         txcsr->al1_transfer_count_trig = df->data_len;
+    }
+    else
+    {
+        hw_clear_bits (&dma_hw->inte0, txdmask);
     }
 }
 
@@ -1180,29 +1192,34 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
         crccpy (df->data + 8, pkt + 6, plen);
         plen += 8 + 2;
     }
-    // Set trailing DEL
-    df->data[plen] = DEL;
     // Update counters
     status_msg.txframes++;
     status_msg.txbytes += plen;
-    // Compute total length, including SYNs and DEL
-    plen += SYN_CNT + 1;
+
+    // Set trailing DEL, plus SYN to pad to 4 byte multiple
+    df->data[plen++] = DEL;
+    df->data[plen++] = SYN;
+    df->data[plen++] = SYN;
+    df->data[plen++] = SYN;
+    plen &= ~3;
+    
+    // Add leading SYN count, then make into word count
+    plen = (plen + SYN_CNT) >> 2;
     df->data_len = plen;
     // Mask the DMA done interrupt, then increment the pending count
     // and start DMA if not currently running.
-    irq_set_enabled (DMA_IRQ_0, false);
+    hw_clear_bits (&dma_hw->inte0, txdmask);
     if (tbuf_count++ == 0)
     {
-        DPRINTF ("Starting DMA\n");
-        txcsr->al1_read_addr = (uint32_t) (df->data);
+        DDPRINTF ("Starting DMA %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
+        txcsr->al1_read_addr = (uint32_t) (df->syn);
         txcsr->al1_transfer_count_trig = plen;
     }
     else
     {
-        DPRINTF ("DMA already active\n");
+        DDPRINTF ("DMA already active %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
     }
-    DPRINTF ("transmit %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
-    irq_set_enabled (DMA_IRQ_0, true);
+    hw_set_bits (&dma_hw->inte0, txdmask);
     txblink ();
 
     // Update transmit ring index
@@ -1215,8 +1232,6 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
 bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
 {
     int plen = size - 14;
-    
-    DPRINTF ("recv_cb %p len %\n", src, size);
 
     if (src[12] != 0x60 || src[13] != 0x06)
     {
@@ -1264,8 +1279,8 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
     else if (df->stat != BUF_EMPTY)
     {
         len = df->data_len + BUF_OFF;
-        DPRINTF ("Sending to host received frame %d status %d len %d\n",
-                 rbuf_empty, df->stat, df->data_len);
+        DDPRINTF ("Sending to host received frame %d status %d len %d\n",
+                  rbuf_empty, df->stat, df->data_len);
         dumpbuf (df->bufhdr, len);
 
         // Give it to USB
@@ -1287,7 +1302,6 @@ static void handle_tdone (void)
 {
     if (tx_full && tbuf_count != TBUFS)
     {
-        DPRINTF ("No longer full\n");
         tx_full = false;
         if (!bist)
         {
@@ -1306,14 +1320,15 @@ void rndis_class_set_handler(uint8_t *data, int size)
 {
 }
 
-// The BIST messages are DDCMP Maintenance packets with 500 bytes of
-// payload.  There is a 4 byte sequence number at the start of the
+// The BIST messages are DDCMP Maintenance packets with BIST_LEN bytes
+// of payload.  There is a 4 byte sequence number at the start of the
 // payload, the rest is zero.  The low order 2 bytes of the sequence
 // number are also inserted into the header (in bytes normally zero in
 // maintenance messages) so we have the sequence number available when
 // reporting packets received with header CRC error.
-uint8_t bist_data[506] = {
-    DLE, (sizeof (bist_data) - 6) & 0xff, (sizeof (bist_data) - 6) >> 8
+#define BIST_LEN 500
+uint8_t bist_data[6 + BIST_LEN] = {
+    DLE, BIST_LEN & 0xff, BIST_LEN >> 8
 };
 uint32_t bist_seq;
 
@@ -1326,7 +1341,7 @@ static void send_bist_data (void)
         if (transmit (bist_data, sizeof (bist_data)))
         {
             bist_seq++;
-            if ((bist % 1000) == 0)
+            if ((bist_seq % 1000) == 0)
             {
                 // Every 1000 frames, send status to the host
                 send_status = true;
@@ -1369,6 +1384,7 @@ static void init_once (void)
     
     // Get a DMA channel
     txdma = dma_claim_unused_channel (true);
+    txdmask = 1 << txdma;
     txcsr = dma_channel_hw_addr (txdma);
 
     // Set interrupt handler
@@ -1382,14 +1398,14 @@ static void init_once (void)
 
 int main ()
 {
-#ifdef DEBUG
+#if DEBUG
     stdio_init_all ();
 #endif
     DPRINTF ("Initializing DDCMP framer\n");
     
     init_once ();
 
-    // See if selftest is requested
+    // See if selftest is requested (TEST pin pulled down)
     if (gpio_get (LOOPTEST) == 0)
     {
         DPRINTF ("Selftest requested\n");
