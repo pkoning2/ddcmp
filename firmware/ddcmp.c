@@ -1,5 +1,5 @@
 //
-#define DEBUG 0
+#define DEBUG 1
 
 #define __packed 
 #define __aligned(x)
@@ -29,7 +29,11 @@
 #else
 #define DPRINTF(fmt...) // empty
 #endif
+#if DEBUG > 1
+#define DDPRINTF DPRINTF
+#else
 #define DDPRINTF(fmt...) // empty
+#endif
 
 // PIO and state machine index assignments for the PIO state machines
 // we use.  Note that the main transmit and receive state machines all
@@ -42,8 +46,8 @@
 #define IMBITSM  1
 #define TXPIO pio0
 #define TXSM  2
-#define DIFFPIO pio1
-#define DIFFSM 0
+#define FREQPIO  pio1
+#define FREQSM   1
 // The two LED pulse stretcher SMs share the same program
 #define BLINKPIO pio1
 #define RXLEDSM  3
@@ -58,6 +62,7 @@ uint16_t blinksm_jmptop;
 
 // Core 1 related state
 volatile bool core1_active = false;
+volatile int avg_period = 0;
 
 // Receive (and more generally, the device) enabled state.
 volatile bool rx_enabled = false;
@@ -126,7 +131,7 @@ const uint8_t opins[] = {
 #define RDMAX (RXLIMIT - 8 - 2) // Max receive DDCMP data length
 #define TXLIMIT 1500    // Max transmit total frame size from host
 #define TDMAX (TXLIMIT - 6) // Max transmit DDCMP data length
-#define MAXLEN (TDMAX < TDMAX ? RDMAX : TDMAX) // Max DDCMP payload
+#define MAXLEN (RDMAX < TDMAX ? RDMAX : TDMAX) // Max DDCMP payload
 #define RDATA (MAXLEN + 8 + 2) // Frame space in rings
 #define BUF_OFF 16      // Buffer offset to start of DDCMP frame
 #define SYN_CNT 8       // Count of SYN bytes before tx frame start
@@ -139,7 +144,7 @@ const uint8_t opins[] = {
 #define INT_MODEM       1
 #define RS232_LOCAL_CLK 2
 #define INT_LOOPBACK    4
-#define BIST            8   // implies INT_LOOPBACK
+#define BIST            8
 
 // DDCMP framing state machine state codes
 enum ddcmp_state
@@ -202,7 +207,10 @@ uint txdmask;
 // DMA channel CSR pointer
 volatile dma_channel_hw_t *txcsr;
 
-// Default buffer header (Ethernet header)
+// Default buffer header (Ethernet header) for messages from framer to
+// host.  The host interface address is aa-00-03-04-05-06; the framer
+// appears as an Ethernet device on that LAN with fixed address
+// aa-00-03-04-05-07.
 static const uint8_t default_hdr[BUF_OFF] = {
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x06,         // Dest:   aa-00-03-04-05-06
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x07,         // Source: aa-00-03-04-05-07
@@ -210,11 +218,9 @@ static const uint8_t default_hdr[BUF_OFF] = {
     BUF_EMPTY, 0x00                             // Status
 };
 
+// This is the USB Ethernet interface address.
 const uint8_t tud_network_mac_address[6] = {
-    0xaa, 0x00, 0x03, 0x04, 0x05, 0x06         // Source: aa-00-03-04-05-06
-};
-const uint8_t framer_mac_address[6] = {
-    0xaa, 0x00, 0x03, 0x04, 0x05, 0x07         // Source: aa-00-03-04-05-07
+    0xaa, 0x00, 0x03, 0x04, 0x05, 0x06         // ifaddr: aa-00-03-04-05-06
 };
 
 // Command message.  This starts like a data message, except that the
@@ -232,7 +238,8 @@ enum ddcmp_action
 {
     REQ_STATUS,         // Get device status
     REQ_START,          // Start DDCMP engine
-    REQ_STOP            // Stop DDCMP engine
+    REQ_STOP,           // Stop DDCMP engine
+    REQ_RAWTX           // Raw transmit
 };
 
 // Status message.  This starts like a data message, except that the
@@ -243,7 +250,7 @@ struct status_msg_t
     uint8_t bufhdr[BUF_OFF - 2];    // room for "Ethernet" header
     uint16_t stat;                  // Status (ddcmp_status code)
     uint8_t dc1;
-    uint8_t on;
+    uint8_t on;                     // "on" flags
     uint16_t mflags;
     uint32_t speed;
     uint32_t rxframes;
@@ -255,8 +262,12 @@ struct status_msg_t
     uint32_t len_err;
     uint32_t nobuf_err;
     uint32_t last_cmd_sts;          // Response code from last command
+    uint32_t freq;                  // Measured frequency
     char version[sizeof (VERSION)];
 };
+
+#define ON_ACT 1
+#define ON_SYN 2
 
 enum last_cmd_status_t
 {
@@ -371,6 +382,25 @@ void ddcmp_cpu1 (void)
                     rword = pio_sm_get (RXPIO, RXSM);
                     break;
                 }
+                // Lower priority than data handling: gather up
+                // frequency measurement data.
+                if (!pio_sm_is_rx_fifo_empty (FREQPIO, FREQSM))
+                {
+                    // Get a sample from the frequency counter
+                    int period = -(int) pio_sm_get (FREQPIO, FREQSM);
+                    int avg = avg_period;
+
+                    if (avg)
+                    {
+                        // Update the weighted average (weight = 32).
+                        avg = ((avg << 5) - avg + period) >> 5;
+                        avg_period = avg;
+                    }
+                    else
+                    {
+                        avg_period = period;
+                    }
+                }
             }
             else
             {
@@ -459,11 +489,16 @@ void ddcmp_cpu1 (void)
                             // Find payload length plus 2 for CRC
                             bytes = 2 + (frame->data[1] |
                                          ((frame->data[2] & 0x3f) << 8));
-                            if (bytes > MAXLEN)
+                            if (bytes > MAXLEN + 2 || bytes == 2)
                             {
+                                // Rather than go through extra
+                                // trouble we'll classify too short
+                                // (zero length field) along with too
+                                // long.
                                 buf_done (DDCMP_LONG);
                                 status_msg.len_err++;
                                 syn_search ();
+                                ds = FLUSH;
                                 break;
                             }
                             frame->data_len += bytes;
@@ -648,12 +683,22 @@ static pio_sm_config pulse_stretch_config (uint offset)
     return c;
 }
 
+static pio_sm_config freq_config (uint offset, int pin)
+{
+    pio_sm_config c;
+    c = freq_program_get_default_config (offset);
+    sm_config_set_jmp_pin (&c, pin);
+    sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_RX);
+
+    return c;
+}
+
 static void setup_pios (uint mflags, uint speed)
 {
     int i;
     uint offset;
-    pio_sm_config rxconfig, txconfig, blinkconfig, imconfig;
-    int rxpin, txpin, clkpin;
+    pio_sm_config rxconfig, txconfig, blinkconfig, imconfig, freqconfig;
+    int rxpin, txpin, clkpin, freqpin;
 
     DPRINTF ("Setting up PIO state machines, flags 0x%02x, speed %d\n",
             mflags, speed);
@@ -706,6 +751,7 @@ static void setup_pios (uint mflags, uint speed)
             DPRINTF ("Setting integral modem enable\n");
             gpio_put (IMEN, true);
         }
+        freqpin = rxpin;
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for integral modem case.
         rxconfig = local_clk_recv_config (offset, RXRECDATA);
@@ -745,6 +791,7 @@ static void setup_pios (uint mflags, uint speed)
             DPRINTF ("Enabling RS-232\n");
             gpio_put (RS232EN, true);
         }
+        freqpin = clkpin;
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for RS-232 case.
         rxconfig = local_clk_recv_config (offset, rxpin);
@@ -763,6 +810,7 @@ static void setup_pios (uint mflags, uint speed)
         // modem_clk_recv.
         DPRINTF ("Initializing RS-232, modem supplied clock\n");
         DPRINTF ("Enabling RS-232\n");
+        freqpin = RXCLKIN;
         gpio_put (RS232EN, true);
         offset = pio_add_program (RXPIO, &modem_clk_recv_program);
         rxconfig = modem_clk_recv_config (offset);
@@ -773,6 +821,13 @@ static void setup_pios (uint mflags, uint speed)
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, TXDATA, 1, true);
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, TXCLKIN, 1, false);
     }
+    // Set up the frequency measurement state machine
+    avg_period = 0;
+    offset = pio_add_program (FREQPIO, &freq_program);
+    freqconfig = freq_config (offset, freqpin);
+    pio_sm_set_consecutive_pindirs (FREQPIO, FREQSM, freqpin, 1, false);
+    pio_sm_init (FREQPIO, FREQSM, offset, &freqconfig);
+    pio_sm_set_enabled (FREQPIO, FREQSM, true);
     // Build the "resynchronize" jump
     rxsm_jmptop = pio_encode_jmp (rxtop);
     // Initialize rx and tx state machines
@@ -812,6 +867,20 @@ static void setup_pios (uint mflags, uint speed)
     pio_sm_put (TXPIO, TXSM, SYN4);
     pio_sm_exec (TXPIO, TXSM, pio_encode_pull (false, false));
     pio_sm_exec (TXPIO, TXSM, pio_encode_mov (pio_x, pio_osr));
+    if (mflags & INT_MODEM)
+    {
+        // Integral modem case, stuff line startup sequence into the
+        // FIFO (before starting the state machine so it will send
+        // this first).  The spec says at least four ones followed by
+        // at least two zeroes; we send 32 of each just to make sure.
+        // The first word is supplied by an instruction to force it
+        // into the output shift register.  That replaces the SYN4
+        // that was there before which left the OSR full.  See
+        // EK-DMCLU-TM-002 (DMC11 Synchronous Line Unit Maintenance
+        // Manual) page 4-76 for details.
+        pio_sm_exec (TXPIO, TXSM, pio_encode_mov_not (pio_osr, pio_null));
+        pio_sm_put (TXPIO, TXSM, 0);
+    }
     pio_sm_set_enabled (TXPIO, TXSM, true);
     DPRINTF ("TX active\n");
 }
@@ -846,11 +915,15 @@ static void gpio_set_drive (int gpio, int strength)
 static void stop_ddcmp (void)
 {
     int i, pin;
+
+    // TODO: flush the queue (library function for that) But why is
+    // that needed?
     
     // Stop all our state machines.  Note that IMBITSM may not be in
     // use, it's only used for the integral modem case, but stopping
     // it can't hurt.
     rx_enabled = false;
+    bist = false;
     pio_sm_set_enabled (RXPIO, RXSM, false);
     pio_sm_set_enabled (TXPIO, TXSM, false);
     pio_sm_set_enabled (IMBITPIO, IMBITSM, false);
@@ -912,17 +985,7 @@ static void start_ddcmp (uint mflags, uint speed)
         status_msg.last_cmd_sts = CMD_ACTIVE;
         return;
     }
-    // BIST implies loopback.  If loopback is requested but neither
-    // internal modem nor local clock is requested, set local clock.
-    if (mflags & BIST)
-    {
-        mflags |= INT_LOOPBACK;
-        bist = true;
-    }
-    else
-    {
-        bist = false;
-    }
+    bist = (mflags & BIST) != 0;
     if (mflags & INT_LOOPBACK)
     {
         if ((mflags & (INT_MODEM | RS232_LOCAL_CLK)) == 0)
@@ -980,7 +1043,7 @@ static void start_ddcmp (uint mflags, uint speed)
     tbuf_count = 0;
     tx_full = false;
     rx_enabled = true;
-    status_msg.on = true;
+    status_msg.on = ON_ACT;
     status_msg.mflags = mflags;
     status_msg.speed = speed;
     start_cpu1 ();
@@ -990,7 +1053,7 @@ static void start_ddcmp (uint mflags, uint speed)
     DPRINTF ("DDCMP active\n");
 }
 
-#if DEBUG
+#if DEBUG > 1
 static uint8_t toprint (uint8_t c)
 {
 	if ((c > 31 && c < 127))// || c > 159)
@@ -1042,14 +1105,15 @@ void handle_rbuf (void)
     }
     if (df->stat != BUF_EMPTY)
     {
-        status_msg.rxframes++;
-        status_msg.rxbytes += df->data_len;
         if (bist)
         {
             DDPRINTF ("received frame %d, status %d, len %d, seq %d\n",
                       rbuf_empty, df->stat, df->data_len,
                       df->data[3] + (df->data[4] << 8));
+            status_msg.rxframes++;
+            status_msg.rxbytes += df->data_len;
             df->stat = BUF_EMPTY;
+            rbuf_empty = (rbuf_empty + 1) % RBUFS;
         }
         else
         {
@@ -1059,13 +1123,41 @@ void handle_rbuf (void)
                 tud_network_xmit (df->bufhdr, df->data_len + BUF_OFF);
             }
         }
-        rbuf_empty = (rbuf_empty + 1) % RBUFS;
     }
+}
+
+static void start_txdma (void *data, int plen)
+{
+    struct ddcmp_txframe *df = &tbuf_ring[tbuf_fill];
+
+    // Set word count
+    plen >>= 2;
+    df->data_len = plen;
+    // Mask the DMA done interrupt, then increment the pending count
+    // and start DMA if not currently running.
+    hw_clear_bits (&dma_hw->inte0, txdmask);
+    if (tbuf_count++ == 0)
+    {
+        DDPRINTF ("Starting DMA %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
+        txcsr->al1_read_addr = (uint32_t) data;
+        txcsr->al1_transfer_count_trig = plen;
+    }
+    else
+    {
+        DDPRINTF ("DMA already active %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
+    }
+    hw_set_bits (&dma_hw->inte0, txdmask);
+    txblink ();
+
+    // Update transmit ring index
+    tbuf_fill = (tbuf_fill + 1) % TBUFS;
 }
 
 static void command (const void *_cmd, uint16_t size)
 {
     const struct command_msg_t *cmd = (const struct command_msg_t *) _cmd;
+    int plen;
+    struct ddcmp_txframe *df;
     
     // Always reply with status
     send_status = true;
@@ -1076,6 +1168,7 @@ static void command (const void *_cmd, uint16_t size)
         status_msg.last_cmd_sts = CMD_BAD_MSG;
         return;
     }
+    DPRINTF ("Processing command %d\n", cmd->cmd);
     switch (cmd->cmd)
     {
     case REQ_STATUS:
@@ -1086,8 +1179,33 @@ static void command (const void *_cmd, uint16_t size)
     case REQ_STOP:
         rx_enabled = false;
         stop_ddcmp ();
-        status_msg.on = false;
+        status_msg.on = 0;
         status_msg.last_cmd_sts = CMD_OK;
+        break;
+    case REQ_RAWTX:
+        plen = size - 2;
+        if (plen & 3)
+        {
+            DPRINTF ("Raw transmit not word aligned, %d\n", plen);
+            status_msg.last_cmd_sts = CMD_BAD_MSG;
+            return;
+        }
+        if (plen > RDATA)
+        {
+            DPRINTF ("Raw transmit too long, %d\n", plen);
+            status_msg.last_cmd_sts = CMD_BAD_MSG;
+            return;
+        }
+        if (!rx_enabled)
+        {
+            DPRINTF ("Raw transmit when off\n");
+            status_msg.last_cmd_sts = TX_OFF;
+            return;
+        }
+        df = &tbuf_ring[tbuf_fill];
+        memcpy (df->data, &cmd->mflags, plen);
+        start_txdma (df->data, plen);
+        send_status = false;
         break;
     default:
         status_msg.last_cmd_sts = CMD_UNKNOWN;
@@ -1178,14 +1296,15 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
     }
     else
     {
-        plen = df->data[1] | ((df->data[2] & 0x3f) << 8);
-        if (plen == 0 || plen > MAXLEN || plen > size + 6)
+        plen = pkt[1] | ((pkt[2] & 0x3f) << 8);
+        if (plen == 0 || plen > MAXLEN || plen + 6 > size)
         {
             DPRINTF ("Bad DDCMP length %d buffer size %d\n", plen, size);
             status_msg.last_cmd_sts = TX_BAD_LENGTH;
             send_status = true;
             return true;
         }
+        
         // Put the DDCMP payload after the header.  Note there is a
         // CRC in the transmit ring buffer but not in the buffer we
         // got from the host, hence the two different offsets.
@@ -1203,39 +1322,20 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
     df->data[plen++] = SYN;
     plen &= ~3;
     
-    // Add leading SYN count, then make into word count
-    plen = (plen + SYN_CNT) >> 2;
-    df->data_len = plen;
-    // Mask the DMA done interrupt, then increment the pending count
-    // and start DMA if not currently running.
-    hw_clear_bits (&dma_hw->inte0, txdmask);
-    if (tbuf_count++ == 0)
-    {
-        DDPRINTF ("Starting DMA %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
-        txcsr->al1_read_addr = (uint32_t) (df->syn);
-        txcsr->al1_transfer_count_trig = plen;
-    }
-    else
-    {
-        DDPRINTF ("DMA already active %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
-    }
-    hw_set_bits (&dma_hw->inte0, txdmask);
-    txblink ();
-
-    // Update transmit ring index
-    tbuf_fill = (tbuf_fill + 1) % TBUFS;
+    // Add leading SYN count, then start the DMA
+    start_txdma (df->syn, plen + SYN_CNT);
     
     return true;
 }
 
 // Handle frames from host
-bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
+static bool handle_frame (const uint8_t *src, uint16_t size)
 {
     int plen = size - 14;
 
     if (src[12] != 0x60 || src[13] != 0x06)
     {
-        DPRINTF ("Ignoring other protocol %02x-%02x\n", src[12], src[13]);
+        DDPRINTF ("Ignoring other protocol %02x-%02x\n", src[12], src[13]);
         return true;
     }
     if (plen < 1)
@@ -1263,6 +1363,17 @@ bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
     return true;
 }
 
+bool tud_network_recv_cb(const uint8_t *src, uint16_t size)
+{
+    bool ret = handle_frame (src, size);
+    
+    if (ret)
+    {
+        tud_network_recv_renew();
+    }
+    return ret;
+}
+        
 // This handles a poll from USB to see if we have something to transmit.
 uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
 {
@@ -1272,6 +1383,47 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
     if (send_status)
     {
         send_status = false;
+        // Figure out the "on" flags
+        if (status_msg.on)
+        {
+            if (gpio_get (SYNLED))
+            {
+                status_msg.on = ON_ACT | ON_SYN;
+            }
+            else
+            {
+                status_msg.on = ON_ACT;
+            }
+        }
+        
+        // Convert average period to frequency.  For the RS-232 case,
+        // the period is the modem clock period, so its reciprocal is
+        // the frequency.  For the integral modem case we get one
+        // cycle per zero bit and 1/2 a cycle per one bit, so we
+        // assume 50% bit density and scale the frequency by 4/3 for
+        // that mode.  Note that 50% bit density is correct for an
+        // idling line, since the SYN byte has 4 ones and 4 zeroes.
+        // The avg_period variable is the moving average of the raw
+        // measurements from the frequency PIO state machine, which
+        // counts every two CPU cycles and delivers the sum of 32
+        // measurements.  But note that due to loop overhead, 68
+        // cycles are not accounted for, so they are added in here.
+        int cycles = avg_period;
+        float freq;
+        if (cycles != 0)
+        {
+            freq = clkdiv (cycles * 2 + 68) * 32;
+        }
+        else
+        {
+            freq = 0;
+        }
+        if (status_msg.mflags & INT_MODEM)
+        {
+            freq *= 4. / 3.;
+        }
+        status_msg.freq = freq;
+
         len = sizeof (status_msg);
         memcpy (dst, &status_msg, len);
         DPRINTF ("Sending status report length %d\n", len);
@@ -1279,6 +1431,8 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
     else if (df->stat != BUF_EMPTY)
     {
         len = df->data_len + BUF_OFF;
+        status_msg.rxframes++;
+        status_msg.rxbytes += df->data_len;
         DDPRINTF ("Sending to host received frame %d status %d len %d\n",
                   rbuf_empty, df->stat, df->data_len);
         dumpbuf (df->bufhdr, len);
@@ -1312,7 +1466,7 @@ static void handle_tdone (void)
 
 void tud_network_init_cb(void)
 {
-    // Nothing to do yet
+    // Nothing to do
 }
 
 // Unused, here to satisfy a reference in net_device.c
@@ -1322,10 +1476,11 @@ void rndis_class_set_handler(uint8_t *data, int size)
 
 // The BIST messages are DDCMP Maintenance packets with BIST_LEN bytes
 // of payload.  There is a 4 byte sequence number at the start of the
-// payload, the rest is zero.  The low order 2 bytes of the sequence
-// number are also inserted into the header (in bytes normally zero in
-// maintenance messages) so we have the sequence number available when
-// reporting packets received with header CRC error.
+// payload, the rest is an mixed data pattern.  The low order 2 bytes
+// of the sequence number are also inserted into the header (in bytes
+// normally zero in maintenance messages) so we have the sequence
+// number available when reporting packets received with header CRC
+// error.
 #define BIST_LEN 500
 uint8_t bist_data[6 + BIST_LEN] = {
     DLE, BIST_LEN & 0xff, BIST_LEN >> 8
@@ -1354,12 +1509,13 @@ static void send_bist_data (void)
 static void init_once (void)
 {
     int i, j;
-
+    uint8_t *p;
+    
     DPRINTF ("Initializing status buffer\n");
     memcpy (&status_msg, default_hdr, sizeof (default_hdr));
     status_msg.dc1 = DC1;
     status_msg.stat = DDCMP_OK;
-    status_msg.on = false;
+    status_msg.on = 0;
     strcpy (status_msg.version, VERSION);
     
     // No need to clear the counters since this buffer is static so
@@ -1392,6 +1548,15 @@ static void init_once (void)
     
     // Now initialize everything else
     stop_ddcmp ();
+
+    p = bist_data + 10;
+    while (p < bist_data + sizeof (bist_data))
+    {
+        *p++ = 0xaa;
+        *p++ = 0xcc;
+        *p++ = 0xff;
+        *p++ = 0x00;
+    }
     
     DPRINTF ("One-time init done\n");
 }
@@ -1402,6 +1567,8 @@ int main ()
     stdio_init_all ();
 #endif
     DPRINTF ("Initializing DDCMP framer\n");
+    DPRINTF (VERSION "\n");
+    DPRINTF ("Max packet length: %d\n", MAXLEN);
     
     init_once ();
 
@@ -1411,7 +1578,7 @@ int main ()
         DPRINTF ("Selftest requested\n");
         // We use the integral modem (since that's the most complex
         // case) at max standard speed (1 Mb/s).
-        start_ddcmp (BIST | INT_MODEM, 1000000);
+        start_ddcmp (BIST | INT_LOOPBACK | INT_MODEM, 1000000);
     }
     
     /* initialize TinyUSB */

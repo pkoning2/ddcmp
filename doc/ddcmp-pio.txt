@@ -39,7 +39,9 @@ value to learn whether the packet is good or bad.
 
 In either direction, we ignore the minimum frame length of Ethernet;
 only the needed bytes are sent since the USB emulated Ethernet NIC
-does not appear to object to undersized frames.
+does not appear to object to undersized frames.  But since we limit
+framer packets to standard Ethernet size, the largest DDCMP data
+length supported is 1488.
 
 Command/status packets begin with 0x11 (DC1) which is not a DDCMP
 frame start value.  Outbound they carry commands to the adapter;
@@ -56,43 +58,48 @@ Command packets start with 0x11.  The next byte is the command:
 0: status request
 1: start
 2: stop
-All commands produce a status packet in reply (the status request
-simply is a "no state change" command).
+3: send raw data
+Status, start, and stop commands produce a status packet in reply (the
+status request simply is a "no state change" command).  For "send raw
+data", the data to be sent is the remainder of the command packet,
+starting immediately ater the command byte.  The data length must be a
+multiple of four.
 
 For start, configuration settings follow:
 Flag bits (2 bytes):
-0: Integral modem (if 0, RS232)
+0: Integral modem (if 0, RS-232)
 1: Local clock (if 0, modem supplies clock).  Not applicable for
 integral modem
 2: Internal loopback.  Implies local clock if not integral modem.
-3: Built-in selftest.  Implies loopback.  In this mode, transmit
-requests are ignored and received data is counted but not delivered.
-The framer internally generates a stream of DDCMP messages (500 bytes
-long) to exercise the transmit and receive data paths.  Status
-requests still work so progress can be monitored via status requests,
-and a stop command will terminate the test.
+3: Built-in selftest.  In this mode, transmit requests are ignored and
+received data is counted but not delivered.  The framer internally
+generates a stream of DDCMP messages (500 bytes long) to exercise the
+transmit and receive data paths.  Status requests still work so
+progress can be monitored via status requests, and a stop command will
+terminate the test.
 
 Speed: (4 bytes):
-This specifies the bit rate in bits per second.  For RS232, it is the
+This specifies the bit rate in bits per second.  For RS-232, it is the
 frequency of the receive and transmit clock signals (if local clock is
 specified).  For integral modem, it is the transmit speed and the
 nominal receive speed; actual receive clocking is from the incoming
 data, which must match the specified rate +/- 6%.  Speed is not
-applicable for RS232 modem supplied clock, in which the bit clocking
-is entirely under control of the modem.  Note that RS232 is not
+applicable for RS-232 modem supplied clock, in which the bit clocking
+is entirely under control of the modem.  Note that RS-232 is not
 officially specified for high speeds; it works well at 56 kbps with
-short cables, and can perhaps be made to work at 250 kbps, but it
-certainly won't run at 1 Mbps since the required rise/fall times are
-too slow for that.  Standard integral modem speeds go as high as 1
-Mbps; the adapter can go a lot faster but standard DEC hardware does
-not.
+short cables, and can probably be made to work at 250 kbps, but it
+won't run at 1 Mbps since the required rise/fall times are too slow
+for that.  Standard integral modem speeds go as high as 1 Mbps; the
+adapter can go a lot faster but standard DEC hardware does not; also,
+at much higher speeds the quantization error of the PIO clock divider
+becomes a problem and receive data recovery no longer works.
 
 Status packet starts with 0x11, followed by state and counter data:
 
-state (1 byte): on = 1, off = 0.
+state (1 byte): bitmap, bit 0 = on (active), bit 1 = in-sync
 flags (2 bytes): as described above for the Start command
-speed (4 bytes): as described above.  Not supplied for RS232 modem
-clock case (where the speed is not known).
+speed (4 bytes): as described above.  Not used for RS-232 modem
+clock case.
 Counters -- all are 4 bytes and wrap on overflow:
 received good frames
 transmitted frames
@@ -102,3 +109,19 @@ header crc errors
 data crc errors
 frame too long errors
 buffer unavailable errors
+Additional status:
+last command status (4 bytes), 0 for good, non-zero for various errors
+measured data rate (4 bytes), in bits per second
+framer firmware version (null-terminated ASCII string)
+
+Note that the measured data rate for the integral modem case is an
+approximation since it operates by measuring the edge timing of the
+received waveform.  The calculation assumes that the received data is
+half ones and half zeroes, which is the case for an idle line (SYN
+bytes are half and half).  If the line is actively carrying data and
+that data has a different bit density the measured line rate will be
+inaccurate; in particular for all zeroes it will be 33% higher than
+the true value.  The intent of this data item is to allow checking the
+data rate of a connected device whose clock may be off spec or
+unknown, allowing the framer to be configured with a matching data
+rate for reliable operation.

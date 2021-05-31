@@ -44,6 +44,7 @@
 */
 	.program modem_clk_xmit
 	.wrap_target
+	wait	0 pin 0
 	wait	1 pin 0
 	out	pins 1
 	pull	ifempty noblock
@@ -85,12 +86,14 @@
 */
 	.program modem_clk_recv
 	.side_set 1 opt
-search:	wait	0 pin 1 side 0	  // indicate not in sync
+search:	wait	1 pin 1 side 0	  // indicate not in sync
+	wait	0 pin 1
 	in	pins, 1
 	mov	x, isr
 	jmp	x!=y, search
 	push	        side 1    // indicate in sync
 	.wrap_target
+	wait	1 pin 1
 	wait	0 pin 1
 	in	pins, 1
 	push	iffull noblock
@@ -107,7 +110,7 @@ search:	wait	0 pin 1 side 0	  // indicate not in sync
    sideset_base is the clock output pin
    sideset_count is 1 (with optional side set)
    state machine clock: 4x the required bit rate.
-   output fifo threshold is 8 or 32, joined output fifos
+   output fifo threshold is 32, joined output fifos
 
    Initialization:
    Before starting this state machine, use the execute register to
@@ -132,7 +135,7 @@ search:	wait	0 pin 1 side 0	  // indicate not in sync
    out_base is the transmit data pin.  side_set also assigned this.
    out_count is 1
    state machine clock: 4x the required bit rate.
-   output fifo threshold is 8 or 32, joined output fifos
+   output fifo threshold is 32, joined output fifos
 
    Initialization:
    Before starting this state machine, use the execute register to
@@ -236,4 +239,25 @@ wait1:	wait	 1 pin 0 [11]	// wait for rising edge
 	nop	[31]
 	.wrap_target
 	set	pins, 0
+	.wrap
+
+/* Frequency counter
+   This counts down while watching for 32 periods of the input
+   pin, and sends the resulting count to the FIFO.
+
+   jmp_base is the pin to monitor
+   state machine clock is max.
+   output fifo threshold is 32, joined output fifos.
+*/
+	.program freq
+	.wrap_target
+	set	x, 31		// period counter
+	set	y, 0		// tick counter
+waitl:	jmp	y--, wl2	// count a tick
+wl2:	jmp	pin, waitl	// loop if not low yet
+waith:	jmp	pin, cycle	// exit loop if high
+	jmp	y--, waith	// count a tick
+cycle:	jmp	x--, waitl	// count cycles
+	mov	isr, y		// get the measured tick count
+	push	noblock		// send it to the main CPU
 	.wrap

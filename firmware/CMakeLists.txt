@@ -37,4 +37,9 @@ pico_generate_pio_header(ddcmp ${CMAKE_CURRENT_LIST_DIR}/ddcmp.pio)
 
 target_link_libraries(ddcmp ddcmp_libs)
 pico_set_program_name(ddcmp "DDCMP Framer")
+
+# Option to make the code run in RAM.  That doesn't appear to have any
+# useful performance benefit so don't bother with it.
+#pico_set_binary_type(ddcmp copy_to_ram)
+
 pico_add_extra_outputs(ddcmp)
