@@ -39,13 +39,25 @@ $ENDCMP
 $CMP Berg_40_pin_DEC_labeling
 D Generic connector, double row, 02x20, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
 K connector
-F ~
+F https://cdn.amphenol-icc.com/media/wysiwyg/files/drawing/75869.pdf
 $ENDCMP
 #
 $CMP Conn_Coaxial
 D coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, ...)
 K BNC SMA SMB SMC coaxial connector CINCH RCA
-F  ~
+F https://www.molex.com/pdm_docs/sd/731000105_sd.pdf
+$ENDCMP
+#
+$CMP MAX3222
+F https://datasheets.maximintegrated.com/en/ds/MAX3222E-MAX3246E.pdf
+$ENDCMP
+#
+$CMP Raspberry_Pico
+F https://datasheets.raspberrypi.org/pico/pico-datasheet.pdf
+$ENDCMP
+#
+$CMP max3491ecpd
+F https://datasheets.maximintegrated.com/en/ds/MAX3483-MAX3491.pdf
 $ENDCMP
 #
 #End Doc Library

@@ -95,7 +95,10 @@ P 3100 2350
 F 0 "J1" H 3018 2767 50  0000 C CNN
 F 1 "UART" H 3018 2676 50  0000 C CNN
 F 2 "ddcmp_parts:Pin_Header_Straight_1x06_Pitch2.54mm" H 3100 2350 50  0001 C CNN
-F 3 "~" H 3100 2350 50  0001 C CNN
+F 3 "https://cdn.harwin.com/pdfs/C001XX_M20_Series_Connectors.pdf" H 3100 2350 50  0001 C CNN
+F 4 "952-2269-ND" H 3100 2350 50  0001 C CNN "Digikey part"
+F 5 "Harwin Inc." H 3100 2350 50  0001 C CNN "Vendor"
+F 6 "M20-9990645" H 3100 2350 50  0001 C CNN "Vendor part"
 	1    3100 2350
 	-1   0    0    -1  
 $EndComp
@@ -131,7 +134,10 @@ P 8350 3800
 F 0 "D1" V 8389 3880 50  0000 L CNN
 F 1 "SYN" V 8298 3880 50  0000 L CNN
 F 2 "ddcmp_parts:LED_D3.0mm" H 8350 3800 50  0001 C CNN
-F 3 "~" H 8350 3800 50  0001 C CNN
+F 3 "https://www.sunledusa.com/products/spec/XLUG34D.pdf" H 8350 3800 50  0001 C CNN
+F 4 "1497-1490-ND" H 8350 3800 50  0001 C CNN "Digikey part"
+F 5 "SunLED" H 8350 3800 50  0001 C CNN "Vendor"
+F 6 "XLUG34D" H 8350 3800 50  0001 C CNN "Vendor part"
 	1    8350 3800
 	0    1    -1   0   
 $EndComp
@@ -142,7 +148,10 @@ P 8700 3800
 F 0 "D2" V 8739 3880 50  0000 L CNN
 F 1 "RX" V 8648 3880 50  0000 L CNN
 F 2 "ddcmp_parts:LED_D3.0mm" H 8700 3800 50  0001 C CNN
-F 3 "~" H 8700 3800 50  0001 C CNN
+F 3 "https://www.sunledusa.com/products/spec/XLUY34D.pdf" H 8700 3800 50  0001 C CNN
+F 4 "1497-1492-ND" H 8700 3800 50  0001 C CNN "Digikey part"
+F 5 "SunLED" H 8700 3800 50  0001 C CNN "Vendor"
+F 6 "XLUY34D" H 8700 3800 50  0001 C CNN "Vendor part"
 	1    8700 3800
 	0    1    -1   0   
 $EndComp
@@ -153,7 +162,10 @@ P 9050 3800
 F 0 "D3" V 9089 3880 50  0000 L CNN
 F 1 "TX" V 8998 3880 50  0000 L CNN
 F 2 "ddcmp_parts:LED_D3.0mm" H 9050 3800 50  0001 C CNN
-F 3 "~" H 9050 3800 50  0001 C CNN
+F 3 "https://www.sunledusa.com/products/spec/XLUR34D.pdf" H 9050 3800 50  0001 C CNN
+F 4 "1497-1491-ND" H 9050 3800 50  0001 C CNN "Digikey part"
+F 5 "SunLED" H 9050 3800 50  0001 C CNN "Vendor"
+F 6 "XLUR34D" H 9050 3800 50  0001 C CNN "Vendor part"
 	1    9050 3800
 	0    1    -1   0   
 $EndComp
@@ -165,6 +177,9 @@ F 0 "R3" H 8418 4246 50  0000 L CNN
 F 1 "150" H 8418 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8390 4190 50  0001 C CNN
 F 3 "" H 8350 4200 50  0001 C CNN
+F 4 "150QBK-ND" H 8350 4200 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 8350 4200 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-150R" H 8350 4200 50  0001 C CNN "Vendor part"
 	1    8350 4200
 	1    0    0    -1  
 $EndComp
@@ -176,6 +191,9 @@ F 0 "R4" H 8768 4246 50  0000 L CNN
 F 1 "150" H 8768 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8740 4190 50  0001 C CNN
 F 3 "" H 8700 4200 50  0001 C CNN
+F 4 "150QBK-ND" H 8700 4200 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 8700 4200 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-150R" H 8700 4200 50  0001 C CNN "Vendor part"
 	1    8700 4200
 	1    0    0    -1  
 $EndComp
@@ -187,6 +205,9 @@ F 0 "R5" H 9118 4246 50  0000 L CNN
 F 1 "150" H 9118 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 9090 4190 50  0001 C CNN
 F 3 "" H 9050 4200 50  0001 C CNN
+F 4 "150QBK-ND" H 9050 4200 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 9050 4200 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-150R" H 9050 4200 50  0001 C CNN "Vendor part"
 	1    9050 4200
 	1    0    0    -1  
 $EndComp
@@ -282,7 +303,10 @@ P 4150 2750
 F 0 "J4" H 4230 2742 50  0000 L CNN
 F 1 "TEST" H 4230 2651 50  0000 L CNN
 F 2 "ddcmp_parts:Pin_Header_Straight_1x02_Pitch2.54mm" H 4150 2750 50  0001 C CNN
-F 3 "~" H 4150 2750 50  0001 C CNN
+F 3 "https://cdn.harwin.com/pdfs/C001XX_M20_Series_Connectors.pdf" H 4150 2750 50  0001 C CNN
+F 4 "952-2261-ND" H 4150 2750 50  0001 C CNN "Digikey part"
+F 5 "Harwin Inc." H 4150 2750 50  0001 C CNN "Vendor"
+F 6 "M20-9990245" H 4150 2750 50  0001 C CNN "Vendor part"
 	1    4150 2750
 	-1   0    0    -1  
 $EndComp
@@ -319,7 +343,10 @@ AR Path="/60A46E24/60A47CFF" Ref="U1"  Part="1"
 F 0 "U1" H 5950 4715 50  0000 C CNN
 F 1 "Pico" H 5950 4624 50  0000 C CNN
 F 2 "ddcmp_parts:RPi_Pico_SMD_TH" V 5950 3500 50  0001 C CNN
-F 3 "" H 5950 3500 50  0001 C CNN
+F 3 "https://datasheets.raspberrypi.org/pico/pico-datasheet.pdf" H 5950 3500 50  0001 C CNN
+F 4 "2648-SC0915CT-ND " H 5950 3500 50  0001 C CNN "Digikey part"
+F 5 "Raspberry Pi" H 5950 3500 50  0001 C CNN "Vendor"
+F 6 "SC0915" H 5950 3500 50  0001 C CNN "Vendor part"
 	1    5950 3500
 	1    0    0    -1  
 $EndComp

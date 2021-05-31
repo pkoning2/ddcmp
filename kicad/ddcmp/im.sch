@@ -3,7 +3,7 @@ EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 3 4
+Sheet 2 4
 Title "DDCMP Framer"
 Date "2021-05-17"
 Rev "A"
@@ -59,7 +59,10 @@ AR Path="/60A471E8/60A50967" Ref="U2"  Part="1"
 F 0 "U2" H 5350 2587 60  0000 C CNN
 F 1 "max3491ecpd" H 5350 2481 60  0000 C CNN
 F 2 "ddcmp_parts:DIP-14_W7.62mm" H 5350 2440 60  0001 C CNN
-F 3 "" H 4550 2200 60  0000 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX3483-MAX3491.pdf" H 4550 2200 60  0001 C CNN
+F 4 "MAX3491CPD+-ND" H 4550 2200 50  0001 C CNN "Digikey part"
+F 5 "Maxim" H 4550 2200 50  0001 C CNN "Vendor"
+F 6 "MAX3491CPD+" H 4550 2200 50  0001 C CNN "Vendor part"
 	1    4550 2200
 	1    0    0    -1  
 $EndComp
@@ -73,6 +76,9 @@ F 0 "TR1" H 2800 2675 50  0000 C CNN
 F 1 "ADT1-6T" H 2800 2766 50  0000 C CNN
 F 2 "ddcmp_parts:Mini-Circuits_CD637_H5.23mm" H 2800 2750 50  0001 C CNN
 F 3 "https://www.minicircuits.com/pdfs/ADT1-6T+.pdf" H 2800 3100 50  0001 C CNN
+F 4 "3157-ADT1-6T+CT-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 5 "Mini-Circuits" H 0   0   50  0001 C CNN "Vendor"
+F 6 "ADT1-6T+" H 0   0   50  0001 C CNN "Vendor part"
 	1    2800 3100
 	1    0    0    -1  
 $EndComp
@@ -86,6 +92,9 @@ F 0 "TR2" H 6950 2375 50  0000 C CNN
 F 1 "ADT1-6T" H 6950 2466 50  0000 C CNN
 F 2 "ddcmp_parts:Mini-Circuits_CD637_H5.23mm" H 6950 2450 50  0001 C CNN
 F 3 "https://www.minicircuits.com/pdfs/ADT1-6T+.pdf" H 6950 2800 50  0001 C CNN
+F 4 "3157-ADT1-6T+CT-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 5 "Mini-Circuits" H 0   0   50  0001 C CNN "Vendor"
+F 6 "ADT1-6T+" H 0   0   50  0001 C CNN "Vendor part"
 	1    6950 2800
 	-1   0    0    1   
 $EndComp
@@ -116,7 +125,10 @@ P 8700 2600
 F 0 "J3" H 8800 2575 50  0000 L CNN
 F 1 "TX" H 8800 2484 50  0000 L CNN
 F 2 "ddcmp_parts:BNC_Molex_J_RA_PCB" H 8700 2600 50  0001 C CNN
-F 3 " ~" H 8700 2600 50  0001 C CNN
+F 3 "https://www.molex.com/pdm_docs/sd/731000105_sd.pdf" H 8700 2600 50  0001 C CNN
+F 4 "WM20430-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 5 "Molex" H 0   0   50  0001 C CNN "Vendor"
+F 6 "0731713150" H 0   0   50  0001 C CNN "Vendor part"
 	1    8700 2600
 	1    0    0    -1  
 $EndComp
@@ -134,6 +146,9 @@ F 0 "R2" H 7368 3296 50  0000 L CNN
 F 1 "1M" H 7368 3205 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7340 3240 50  0001 C CNN
 F 3 "" H 7300 3250 50  0001 C CNN
+F 4 "1.0MQBK-ND" H 7300 3250 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 7300 3250 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-1M" H 7300 3250 50  0001 C CNN "Vendor part"
 	1    7300 3250
 	1    0    0    -1  
 $EndComp
@@ -145,6 +160,9 @@ F 0 "R1" H 2568 3646 50  0000 L CNN
 F 1 "1M" H 2568 3555 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 2540 3590 50  0001 C CNN
 F 3 "" H 2500 3600 50  0001 C CNN
+F 4 "1.0MQBK-ND" H 2500 3600 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 2500 3600 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-1M" H 2500 3600 50  0001 C CNN "Vendor part"
 	1    2500 3600
 	1    0    0    -1  
 $EndComp
@@ -186,7 +204,10 @@ P 1200 2900
 F 0 "J2" H 1128 3138 50  0000 C CNN
 F 1 "RX" H 1128 3047 50  0000 C CNN
 F 2 "ddcmp_parts:BNC_Molex_J_RA_PCB" H 1200 2900 50  0001 C CNN
-F 3 " ~" H 1200 2900 50  0001 C CNN
+F 3 "https://www.molex.com/pdm_docs/sd/731000105_sd.pdf" H 1200 2900 50  0001 C CNN
+F 4 "WM20430-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 5 "Molex" H 0   0   50  0001 C CNN "Vendor"
+F 6 "0731713150" H 0   0   50  0001 C CNN "Vendor part"
 	1    1200 2900
 	-1   0    0    -1  
 $EndComp
@@ -209,9 +230,12 @@ F 0 "C11" H 4215 3796 50  0000 L CNN
 F 1 "0.1uF" H 4215 3705 50  0000 L CNN
 F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 4138 3600 50  0001 C CNN
 F 3 "" H 4100 3750 50  0001 C CNN
-F 4 "399-14010-1-ND​" H 4100 3750 50  0001 C CNN "Digikey"
-F 5 "Kemet" H 4100 3750 50  0001 C CNN "Mfg"
-F 6 "C315C104M5U5TA7301" H 4100 3750 50  0001 C CNN "Mfg part"
+F 4 "399-14010-1-ND" H 4100 3750 50  0001 C CNN "Digikey part"
+F 5 "Kemet" H 4100 3750 50  0001 C CNN "Vendor"
+F 6 "C315C104M5U5TA7301" H 4100 3750 50  0001 C CNN "Vendor part"
+F 7 "399-14010-1-ND" H 4100 3750 50  0001 C CNN "Digikey part"
+F 8 "Kemet" H 4100 3750 50  0001 C CNN "Vendor"
+F 9 "C315C104M5U5TA7301" H 4100 3750 50  0001 C CNN "Vendor part"
 	1    4100 3750
 	1    0    0    -1  
 $EndComp
@@ -269,6 +293,9 @@ F 0 "R7" H 3618 3796 50  0000 L CNN
 F 1 "750" H 3618 3705 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3590 3740 50  0001 C CNN
 F 3 "" H 3550 3750 50  0001 C CNN
+F 4 "750QBK-ND" H 3550 3750 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 3550 3750 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-750R" H 3550 3750 50  0001 C CNN "Vendor part"
 	1    3550 3750
 	1    0    0    -1  
 $EndComp
@@ -284,9 +311,12 @@ L ddcmp_symbols:R_US R6
 U 1 1 60AA4B02
 P 3550 1800
 F 0 "R6" H 3618 1846 50  0000 L CNN
-F 1 "240" H 3618 1755 50  0000 L CNN
+F 1 "270" H 3618 1755 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3590 1790 50  0001 C CNN
 F 3 "" H 3550 1800 50  0001 C CNN
+F 4 "240QBK-ND" H 3550 1800 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 3550 1800 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-270R" H 3550 1800 50  0001 C CNN "Vendor part"
 	1    3550 1800
 	1    0    0    -1  
 $EndComp

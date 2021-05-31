@@ -259,6 +259,9 @@ F0 "TR" 0 250 50 H V C CNN
 F1 "ddcmp_symbols_ADT1-6T" 0 -250 50 H V C CNN
 F2 "ddcmp_parts:Mini-Circuits_CD637_H5.23mm" 0 -350 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
+F4 "3157-ADT1-6T+CT-ND" 0 0 50 H I C CNN "Digikey part"
+F5 "Mini-Circuits" 0 0 50 H I C CNN "Vendor"
+F6 "ADT1-6T+" 0 0 50 H I C CNN "Vendor part"
 ALIAS ADT2-71T ADT4-5WT ADT4-6T ADT8-1T ADT16-6T
 $FPLIST
  Mini?Circuits*CD637*
@@ -292,6 +295,9 @@ F0 "J" 50 1000 50 H V C CNN
 F1 "ddcmp_symbols_Berg_40_pin_DEC_labeling" 50 -1100 50 H V C CNN
 F2 "" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
+F4 "609-1779-ND" 0 0 50 H I C CNN "Digikey part"
+F5 "Amphenol ICC" 0 0 50 H I C CNN "Vendor"
+F6 "75869-107LF" 0 0 50 H I C CNN "Vendor part"
 $FPLIST
  Connector*:*_2x??_*
 $ENDFPLIST
@@ -387,9 +393,9 @@ F0 "C" 25 100 50 H V L CNN
 F1 "ddcmp_symbols_C" 25 -100 50 H V L CNN
 F2 "" 38 -150 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
-F4 "399-14010-1-ND​" 0 0 50 H I C CNN "Digikey"
-F5 "Kemet" 0 0 50 H I C CNN "Mfg"
-F6 "C315C104M5U5TA7301" 0 0 50 H I C CNN "Mfg part"
+F4 "399-14010-1-ND​" 0 0 50 H I C CNN "Digikey part"
+F5 "Kemet" 0 0 50 H I C CNN "Vendor"
+F6 "C315C104M5U5TA7301" 0 0 50 H I C CNN "Vendor part"
 $FPLIST
  C_*
 $ENDFPLIST
@@ -408,6 +414,9 @@ F0 "J" 10 120 50 H V C CNN
 F1 "ddcmp_symbols_Conn_Coaxial" 115 0 50 V V C CNN
 F2 "ddcmp_parts:BNC_Molex_J_RA_PCB" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
+F4 "WM20430-ND" 0 0 50 H I C CNN "Digikey part"
+F5 "Molex" 0 0 50 H I C CNN "Vendor"
+F6 "0731713150" 0 0 50 H I C CNN "Vendor part"
 $FPLIST
  *BNC*
  *SMA*
@@ -433,8 +442,9 @@ F0 "U" -100 1125 50 H V R CNN
 F1 "ddcmp_symbols_MAX3222" -100 1050 50 H V R CNN
 F2 "ddcmp_parts:DIP-18_W7.62mm" 50 -1050 50 H I L CNN
 F3 "" 0 100 50 H I C CNN
-F4 "Maxim" 0 0 50 H I C CNN "Mfg"
-F5 "MAX3222ECPN" 0 0 50 H I C CNN "Mfg part"
+F4 "MAX3222ECPN+-ND" 0 0 50 H I C CNN "Digikey part"
+F5 "Maxim" 0 0 50 H I C CNN "Vendor"
+F6 "MAX3222ECPN" 0 0 50 H I C CNN "Vendor part"
 $FPLIST
  SOIC*P1.27mm*
  DIP*W7.62mm*
@@ -508,6 +518,9 @@ F0 "U" -550 1100 50 H V C CNN
 F1 "ddcmp_symbols_Raspberry_Pico" 0 750 50 H V C CNN
 F2 "ddcmp_parts:RPi_Pico_SMD_TH" 0 0 50 V I C CNN
 F3 "" 0 0 50 H I C CNN
+F4 "2648-SC0915CT-ND " 0 0 50 H I C CNN "Digikey part"
+F5 "Raspberry Pi" 0 0 50 H I C CNN "Vendor"
+F6 "SC0915" 0 0 50 H I C CNN "Vendor part"
 DRAW
 T 0 0 850 50 0 0 0 "Raspberry Pico" Normal 0 C C
 S -600 1050 600 -1050 0 1 0 f
@@ -563,7 +576,10 @@ DEF ddcmp_symbols_max3491ecpd U 0 10 Y Y 1 F N
 F0 "U" 800 400 60 H V C CNN
 F1 "ddcmp_symbols_max3491ecpd" 800 300 60 H V C CNN
 F2 "ddcmp_parts:DIP-14_W7.62mm" 800 240 60 H I C CNN
-F3 "" 0 0 60 H V C CNN
+F3 "" 0 0 60 H I C CNN
+F4 "MAX3491CPD+-ND" 0 0 50 H I C CNN "Digikey part"
+F5 "Maxim" 0 0 50 H I C CNN "Vendor"
+F6 "MAX3491CPD+" 0 0 50 H I C CNN "Vendor part"
 $FPLIST
  21-0043_P14+4_MXM
 $ENDFPLIST
