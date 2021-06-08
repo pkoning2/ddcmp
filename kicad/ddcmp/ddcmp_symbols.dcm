@@ -36,6 +36,12 @@ K Mini-Circuits RF Transformer
 F https://www.minicircuits.com/pdfs/ADT8-1T+.pdf
 $ENDCMP
 #
+$CMP ADTT1-6
+D 0.015-100MHz 1:1 RF Transformer, Unbalanced to Balanced Center Tap at Primary/Secondary, CD637
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/ADTT1-6+.pdf
+$ENDCMP
+#
 $CMP Berg_40_pin_DEC_labeling
 D Generic connector, double row, 02x20, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)
 K connector
@@ -54,6 +60,12 @@ $ENDCMP
 #
 $CMP Raspberry_Pico
 F https://datasheets.raspberrypi.org/pico/pico-datasheet.pdf
+$ENDCMP
+#
+$CMP TT1-6-X65+
+D 0.004-300MHz 1:1 RF Transformer, Unbalanced to Balanced Center Tap at Primary/Secondary, CD637 or X65
+K Mini-Circuits RF Transformer
+F https://www.minicircuits.com/pdfs/TT1-6-X65.pdf
 $ENDCMP
 #
 $CMP max3491ecpd

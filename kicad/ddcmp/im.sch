@@ -43,9 +43,9 @@ Wire Wire Line
 Wire Wire Line
 	6400 3000 6400 2850
 Wire Wire Line
-	6750 3000 6400 3000
+	6750 3000 6550 3000
 Wire Wire Line
-	6400 2600 6750 2600
+	6400 2600 6550 2600
 Wire Wire Line
 	6400 2750 6400 2600
 Wire Wire Line
@@ -67,34 +67,34 @@ F 6 "MAX3491CPD+" H 4550 2200 50  0001 C CNN "Vendor part"
 	1    0    0    -1  
 $EndComp
 $Comp
-L ddcmp_symbols:ADT1-6T TR?
+L ddcmp_symbols:TT1-6-X65+ TR?
 U 1 1 60A5097C
 P 2800 3100
 AR Path="/60A5097C" Ref="TR?"  Part="1" 
 AR Path="/60A471E8/60A5097C" Ref="TR1"  Part="1" 
 F 0 "TR1" H 2800 2675 50  0000 C CNN
-F 1 "ADT1-6T" H 2800 2766 50  0000 C CNN
-F 2 "ddcmp_parts:Mini-Circuits_CD637_H5.23mm" H 2800 2750 50  0001 C CNN
-F 3 "https://www.minicircuits.com/pdfs/ADT1-6T+.pdf" H 2800 3100 50  0001 C CNN
-F 4 "3157-ADT1-6T+CT-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 1 "TT1-6-X65+" H 2800 2766 50  0000 C CNN
+F 2 "ddcmp_parts:Mini-Circuits_CD637_X65" H 2800 2750 50  0001 C CNN
+F 3 "https://www.minicircuits.com/pdfs/TT1-6-X65.pdf" H 2800 3100 50  0001 C CNN
+F 4 "" H 0   0   50  0001 C CNN "Digikey part"
 F 5 "Mini-Circuits" H 0   0   50  0001 C CNN "Vendor"
-F 6 "ADT1-6T+" H 0   0   50  0001 C CNN "Vendor part"
+F 6 "TT1-6-X65+" H 0   0   50  0001 C CNN "Vendor part"
 	1    2800 3100
 	1    0    0    -1  
 $EndComp
 $Comp
-L ddcmp_symbols:ADT1-6T TR?
+L ddcmp_symbols:TT1-6-X65+ TR?
 U 1 1 60A50982
 P 6950 2800
 AR Path="/60A50982" Ref="TR?"  Part="1" 
 AR Path="/60A471E8/60A50982" Ref="TR2"  Part="1" 
 F 0 "TR2" H 6950 2375 50  0000 C CNN
-F 1 "ADT1-6T" H 6950 2466 50  0000 C CNN
-F 2 "ddcmp_parts:Mini-Circuits_CD637_H5.23mm" H 6950 2450 50  0001 C CNN
-F 3 "https://www.minicircuits.com/pdfs/ADT1-6T+.pdf" H 6950 2800 50  0001 C CNN
-F 4 "3157-ADT1-6T+CT-ND" H 0   0   50  0001 C CNN "Digikey part"
+F 1 "TT1-6-X65+" H 6950 2466 50  0000 C CNN
+F 2 "ddcmp_parts:Mini-Circuits_CD637_X65" H 6950 2450 50  0001 C CNN
+F 3 "https://www.minicircuits.com/pdfs/TT1-6-X65.pdf" H 6950 2800 50  0001 C CNN
+F 4 "" H 0   0   50  0001 C CNN "Digikey part"
 F 5 "Mini-Circuits" H 0   0   50  0001 C CNN "Vendor"
-F 6 "ADT1-6T+" H 0   0   50  0001 C CNN "Vendor part"
+F 6 "TT1-6-X65+" H 0   0   50  0001 C CNN "Vendor part"
 	1    6950 2800
 	-1   0    0    1   
 $EndComp
@@ -111,11 +111,11 @@ IM_ENABLE
 Text HLabel 4000 2850 0    50   Input ~ 0
 IM_TXDATA
 Wire Wire Line
-	3000 2900 3200 2900
+	3000 2900 3100 2900
 Wire Wire Line
 	3200 2900 3200 2300
 Wire Wire Line
-	3000 3300 3300 3300
+	3000 3300 3100 3300
 Wire Wire Line
 	3300 3300 3300 2400
 $Comp
@@ -285,20 +285,6 @@ Text HLabel 1900 3550 0    50   Input ~ 0
 IM_RXD_N
 Text HLabel 1900 2650 0    50   Input ~ 0
 IM_RDX
-$Comp
-L ddcmp_symbols:R_US R7
-U 1 1 60AA503A
-P 3550 3750
-F 0 "R7" H 3618 3796 50  0000 L CNN
-F 1 "750" H 3618 3705 50  0000 L CNN
-F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3590 3740 50  0001 C CNN
-F 3 "" H 3550 3750 50  0001 C CNN
-F 4 "750QBK-ND" H 3550 3750 50  0001 C CNN "Digikey part"
-F 5 "Yageo" H 3550 3750 50  0001 C CNN "Vendor"
-F 6 "CFR-25JB-52-750R" H 3550 3750 50  0001 C CNN "Vendor part"
-	1    3550 3750
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	4550 3150 4100 3150
 Wire Wire Line
@@ -306,50 +292,61 @@ Wire Wire Line
 Wire Wire Line
 	4550 3050 4100 3050
 Connection ~ 4100 3050
-$Comp
-L ddcmp_symbols:R_US R6
-U 1 1 60AA4B02
-P 3550 1800
-F 0 "R6" H 3618 1846 50  0000 L CNN
-F 1 "270" H 3618 1755 50  0000 L CNN
-F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3590 1790 50  0001 C CNN
-F 3 "" H 3550 1800 50  0001 C CNN
-F 4 "240QBK-ND" H 3550 1800 50  0001 C CNN "Digikey part"
-F 5 "Yageo" H 3550 1800 50  0001 C CNN "Vendor"
-F 6 "CFR-25JB-52-270R" H 3550 1800 50  0001 C CNN "Vendor part"
-	1    3550 1800
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	3550 1650 3550 1200
-Wire Wire Line
-	3000 3100 3550 3100
 Wire Wire Line
 	4450 4150 4450 4300
-Wire Wire Line
-	3550 3900 3550 4150
-Wire Wire Line
-	3550 4150 4100 4150
-Connection ~ 4100 4150
 Wire Wire Line
 	4100 3150 4100 3600
 Connection ~ 4100 3150
 Wire Wire Line
 	4450 2200 4450 3250
 Wire Wire Line
-	3550 1950 3550 3100
-Wire Wire Line
 	4100 1200 4100 3050
 Wire Wire Line
 	3200 2300 4550 2300
 Wire Wire Line
 	3300 2400 4550 2400
-Connection ~ 3550 1200
 Wire Wire Line
-	3550 1200 2800 1200
+	2800 1200 4100 1200
+$Comp
+L ddcmp_symbols:R_US R7
+U 1 1 60BD0969
+P 6550 2800
+F 0 "R7" H 6618 2846 50  0000 L CNN
+F 1 "51" H 6618 2755 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 6590 2790 50  0001 C CNN
+F 3 "" H 6550 2800 50  0001 C CNN
+	1    6550 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L ddcmp_symbols:R_US R6
+U 1 1 60BD1A0F
+P 3100 3100
+F 0 "R6" H 3168 3146 50  0000 L CNN
+F 1 "51" H 3168 3055 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3140 3090 50  0001 C CNN
+F 3 "" H 3100 3100 50  0001 C CNN
+	1    3100 3100
+	1    0    0    -1  
+$EndComp
 Wire Wire Line
-	3550 1200 4100 1200
-Connection ~ 3550 3100
+	6550 2950 6550 3000
+Connection ~ 6550 3000
 Wire Wire Line
-	3550 3100 3550 3600
+	6550 3000 6400 3000
+Wire Wire Line
+	6550 2650 6550 2600
+Connection ~ 6550 2600
+Wire Wire Line
+	6550 2600 6750 2600
+Wire Wire Line
+	3100 2950 3100 2900
+Connection ~ 3100 2900
+Wire Wire Line
+	3100 2900 3200 2900
+Wire Wire Line
+	3100 3250 3100 3300
+Connection ~ 3100 3300
+Wire Wire Line
+	3100 3300 3300 3300
 $EndSCHEMATC

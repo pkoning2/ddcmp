@@ -17,8 +17,6 @@ Wire Wire Line
 	5250 2750 5050 2750
 Wire Wire Line
 	5050 2750 5050 3250
-Wire Wire Line
-	6650 2750 6850 2750
 $Comp
 L power:GND #PWR0101
 U 1 1 60A51795
@@ -42,10 +40,7 @@ F 3 "" H 6850 4750 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6850 2750 6850 3250
-Wire Wire Line
 	6650 3250 6850 3250
-Connection ~ 6850 3250
 Wire Wire Line
 	6850 3250 6850 3750
 Wire Wire Line
@@ -314,26 +309,12 @@ NoConn ~ 3300 2250
 NoConn ~ 3300 2350
 NoConn ~ 3300 2650
 NoConn ~ 5250 3150
-NoConn ~ 6650 2550
-NoConn ~ 6650 2650
 NoConn ~ 6650 2850
 NoConn ~ 6650 3050
 NoConn ~ 6650 3550
 NoConn ~ 5100 4700
 NoConn ~ 5850 4650
 NoConn ~ 6050 4650
-$Comp
-L power:PWR_FLAG #FLG0101
-U 1 1 60B1F675
-P 6850 2750
-F 0 "#FLG0101" H 6850 2825 50  0001 C CNN
-F 1 "PWR_FLAG" H 6850 2923 50  0000 C CNN
-F 2 "" H 6850 2750 50  0001 C CNN
-F 3 "~" H 6850 2750 50  0001 C CNN
-	1    6850 2750
-	1    0    0    -1  
-$EndComp
-Connection ~ 6850 2750
 $Comp
 L ddcmp_symbols:Raspberry_Pico U?
 U 1 1 60A47CFF
@@ -381,4 +362,31 @@ NoConn ~ 6650 3650
 NoConn ~ 6650 3850
 NoConn ~ 6650 3950
 NoConn ~ 6650 4450
+Wire Wire Line
+	6650 2750 6850 2750
+$Comp
+L power:PWR_FLAG #FLG0101
+U 1 1 60B1F675
+P 7200 2750
+F 0 "#FLG0101" H 7200 2825 50  0001 C CNN
+F 1 "PWR_FLAG" H 7200 2923 50  0000 C CNN
+F 2 "" H 7200 2750 50  0001 C CNN
+F 3 "~" H 7200 2750 50  0001 C CNN
+	1    7200 2750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6850 3250 6850 2750
+Connection ~ 6850 3250
+Connection ~ 6850 2750
+Wire Wire Line
+	6850 2750 7200 2750
+Wire Wire Line
+	6650 2550 6750 2550
+Wire Wire Line
+	6750 2550 6750 2650
+Wire Wire Line
+	6750 2650 6650 2650
+Text Notes 6750 2500 0    50   ~ 0
+VBus connected to Vsys for efficiency.\nSee Pico data sheet, section 4.5
 $EndSCHEMATC
