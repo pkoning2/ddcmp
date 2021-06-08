@@ -18,9 +18,6 @@ You will need to communicate with the framer using Ethernet packets to tell it w
 
 If J4 is installed, you can access an internal self-test feature by installing a jumper on that header before connecting the board to power.  This will set internal loopback mode at 1 Mb/s and a test packet generator that sends 500  byte packets continuously.  Normal operation is shown by all three LEDs lighting up solid.  Every 1000 packets the self-test will send a status API message to the connected host; you can use host software to receive and display these, or capture them with a tool such as tcpdump or wireshark.  To terminate the test, simply unplug the USB cable and remove the jumper.
 
-### USB emulator board
-
-
 ## Building the software
 
 A pre-built binary `ddcmp.uf2` is supplied on Github.  You can build your own, modified if desired.  Install the Raspberry Pico SDK using the instructions given in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf "Getting started document").  Be sure to set environment variable `PICO_SDK_PATH` to the root directory of the SDK.  You will also need the `cmake` tool.
@@ -29,7 +26,6 @@ With the SDK installed, go to the `firmware` directory and execute:
 
     cmake .
     make
-
 
 This will build all the necessary components and produce a loadable binary, `ddcmp.uf2`.  Load it into the board using the instructions given above.
 

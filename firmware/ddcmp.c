@@ -1,5 +1,15 @@
+// DDCMP Framer
 //
-#define DEBUG 1
+// This is a USB-connected device that connects to DDCMP synchronous
+// link devices, either RS-232 or DEC "integral modem" coax links,
+// such as the DMC-11.
+//
+// Copyright (c) 2021, Paul Koning
+//
+// Please read file LICENSE for the license that applies to this project.
+//
+
+#define DEBUG 0
 
 #define __packed 
 #define __aligned(x)

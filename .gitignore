@@ -6,7 +6,6 @@ fp-info-cache
 *.elf*
 *.bin
 *.dis
-*.uf2
 *.hex
 *.map
 CMakeCache.txt
