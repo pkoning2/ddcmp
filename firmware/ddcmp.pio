@@ -198,30 +198,40 @@ search:	wait	1 irq rxbit side 0  // indicate not in sync
 	.wrap
 
 /* Integral modem bit recovery
-   This is the bit clock and data recovery for the integral modem.
-   It sends the recovered bit stream to a pin which is output here
-   but is the input pin of the "local_clk_recv" state machine program.
+
+   This is the bit clock and data recovery for the integral modem.  It
+   sends the recovered bit stream to a pin which is output here but is
+   the input pin of the "local_clk_recv" state machine program.
+   Availability of the recovered bit is signaled by IRQ "rxbit"; this
+   doesn't happen until the edge that marks the start of the next bit
+   cell.
+
+   The strobe signal (on the next pin) is for test, to allow
+   observation of the receive eye pattern and the point at which the
+   state machine strobes the received data.  The leading edge
+   indicates the strobe point.
 
    in_base is the modulated receive data pin
    jmp_pin is that same pin
-   out_base is the recovered data pin (for "local_clk_recv" to use as input)
-   out_count is 1
-   state machine clock is 16x the bit rate.
+   set_base is the strobe pin
+   set_count is 1
+   sideset_base is the recovered data pin (for "local_clk_recv" to use
+   as input) and strobe pin.  
+   state machine clock is 12x the bit rate.
 */
 	.program inmodem_rxbit
-wait0:	wait	0 pin 0 [11]	// wait for falling edge
-	mov	pins, !pins	// internal_rx from rxdata
-	irq	rxbit
-	jmp	pin, wait0	// If now high wait for low
-	// Note that the two loops (above and below) each take 15
-	// cycles, so we can handle rate errors up to +6 percent
-	.wrap_target
-wait1:	wait	 1 pin 0 [11]	// wait for rising edge
-	mov	 pins, pins    	// internal_rx from rxdata
-	irq	 rxbit
-	jmp	pin, wait0	// If now high wait for low
-	.wrap	
-
+	.side_set 2 opt
+wait1:	wait	1 pin 0		// wait for rising edge
+	irq	rxbit [2]	// signal receive SM
+	set	pins, 0 [3]	// drop strobe signal
+	jmp	pin, wait0 side 3 // recovered a 1, strobe
+	jmp	wait1 side 2	// recovered a zero
+wait0:	wait	0 pin 0	   	// wait for falling edge
+	irq	rxbit [2]	// signal receive SM
+	set	pins, 0 [3]	// drop strobe signal
+	jmp	pin, wait0 side 2 // recovered a zero, strobe
+	jmp	wait1 side 3	// recovered a 1
+	
 /* Pulse stretcher
    This generates a 50 ms pulse on the output pin to produce
    an adequately visible flash of light from the connected LED.

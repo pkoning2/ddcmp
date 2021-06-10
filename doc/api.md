@@ -47,15 +47,22 @@ transmit and receive data paths.  Status requests still work so
 progress can be monitored via status requests, and a stop command will
 terminate the test.
 
+Bit 4: Split speed.  This applies only to the integral modem case.  If set, the transmit speed is taken from the txspeed field rather than the speed field.  This is a test function that allows verifying the correct operation of receive data recovery when the sending end data rate is out of spec.
+
 Speed: (4 bytes):
 
-This specifies the bit rate in bits per second.  For RS-232 DCE mode, it is the frequency of the receive and transmit clock signals.  For integral modem, it is the transmit speed and the nominal receive speed; actual receive clocking is from the incoming data, which must match the specified rate +/- 6%.  Speed is not applicable for RS-232 DTE mode, in which the bit clocking is entirely under control of the modem.  Note that RS-232 is not officially specified for high speeds; it works well at 56 kbps with short cables, and can probably be made to work at 250 kbps, but it is unlikely to run at 1 Mbps since the required rise/fall times are too slow for that.  Standard integral modem speeds go as high as 1 Mbps; the adapter can go faster but standard DEC hardware does not; also, at much higher speeds the quantization error of the PIO clock divider becomes a problem and receive data recovery no longer works.
+This specifies the bit rate in bits per second.  For RS-232 DCE mode, it is the frequency of the receive and transmit clock signals.  For integral modem, it is the transmit speed and the nominal receive speed; actual receive clocking is from the incoming data, which must match the specified rate +/- 6%.  Speed is not applicable for RS-232 DTE mode, in which the bit clocking is entirely under control of the modem.  Note that RS-232 is not officially specified for high speeds; it works well at 56 kbps with short cables, and can probably be made to work at 250 kbps, but it is unlikely to run at 1 Mbps since the required rise/fall times are too slow for that.  Standard integral modem speeds go as high as 1 Mbps; the adapter can go faster but standard DEC hardware does not; also, at some higher speeds the quantization error of the PIO clock divider becomes a problem and receive data recovery no longer works.
+
+Transmit speed (4 bytes):
+
+This is the transmit data rate, if the "split speed" bit is set in `mflags`.
 
 Status packet starts with 021 (after the usual 2 byte receive status field), followed by state and counter data:
 
 * state (1 byte): flags, bit 0 = on (active), bit 1 = in-sync
 * mode and flags (2 bytes): as described above for the Start command
 * speed (4 bytes): as described above.  Not used for RS-232 DTE mode.
+* transmit speed (4 bytes): as described above.  
 * Counters -- all are 4 bytes and wrap on overflow:
 * received good frames
 * transmitted frames

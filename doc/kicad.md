@@ -51,16 +51,16 @@ Here are all the parts in the design, with schematic reference (also on the boar
 | R3 | 150 | Carbon film resistor | Yageo | 150QBK-ND |
 | R4 | 150 | Carbon film resistor | Yageo | 150QBK-ND |
 | R5 | 150 | Carbon film resistor | Yageo | 150QBK-ND |
-| R6 | 240 | Carbon film resistor | Yageo | 240QBK-ND |
-| R7 | 750 | Carbon film resistor | Yageo | 750QBK-ND |
-| TR1 | ADT1-6T | Transformer | Mini-Circuits | 3157-ADT1-6T+CT-ND |
-| TR2 | ADT1-6T | Transformer | Mini-Circuits | 3157-ADT1-6T+CT-ND |
+| R6 | 51 | Carbon film resistor | Yageo | 51QBK-ND |
+| R7 | 51 | Carbon film resistor | Yageo | 51QBK-ND |
+| TR1 | TT1-6-X65+ | Transformer | Mini-Circuits |  |
+| TR2 | TT1-6-X65+ | Transformer | Mini-Circuits |  |
 | U1 | Pico | Raspberry Pico | Raspberry Pi | 2648-SC0915CT-ND  |
 | U2 | max3491ecpd | RS-422 transceiver | Maxim | MAX3491CPD+-ND |
 | U3 | MAX3222 | RS-232 transceiver | Maxim | MAX3222ECPN+-ND |
 | U4 | MAX3222 | RS-232 transceiver | Maxim | MAX3222ECPN+-ND |
 
-If you want to use Digikey as your supplier, the saved BOM is available [there](https://www.digikey.com/short/TO_BE_SUPPLIED "Digikey BOM").
+If you want to use Digikey as your supplier, the saved BOM is available [there](https://www.digikey.com/short/TO_BE_SUPPLIED "Digikey BOM").  Note that TR1 and TR2 are not in that BOM since Digikey does not have these; you can order them directly from Mini-Circuits.
 
 ### Optional components
 
@@ -78,6 +78,22 @@ The options are:
 8. Debug UART connection: J1.
 9. Easy access to built-in selftest feature: J4.
 
+### Transformer alternatives
+
+The listed part for TR1 and TR2 is the Mini-Circuits TT1-6-X65, which is a 6 pin DIP (through-hole) part.  It doesn't appear in the Digikey catalog, but it can be obtained directly from Mini-Circuits.
+
+If you have trouble getting this part, several other Mini-Circuits transformers could be used instead.  The alternatives are all surface mount parts; the PCB footprint is designed to handle either the surface mount or the DIP part.
+
+#### Tested alternatives
+
+1. Mini-Circuits ADT1-6T+.  That one works fine at 1 Mbps but its low frequency limit makes it marginal at best at 56 kbps.
+
+#### Untested alternatives
+
+1. Mini-Circuits ADTT1-6+ appears to be suitable judging by its specifications.
+
+2. Mini-Circuits ADT2-71T+ may work.  This is a 1:2 impedance transformer.  TheMAX3491 transceiver is designed for either 50 ohm or 100 ohm load so this should be fine, but the output voltage at the 50 ohm connector will be somewhat reduced.  So long as the cables are not too long I would not expect a problem.  If this option is used, replace R6 and R7 by 100 ohm resistors.  Also, with this part the correct orientation is important.
+ 
 ### Assembly suggestions
 
 I found that this order of installing the components works well:
@@ -91,7 +107,7 @@ I found that this order of installing the components works well:
 
 Note the correct orientation of D1, D2, D3, J7, U1, U2, U3, and U4.  U1 is oriented with the USB at the top of the board and all the contacts matched to pads on the board.  The other three ICs have a square pad at pin 1.  J7 (the 40-pin connector) has the keying notches towards the top of the board.  The LEDs have their flat side at the square pad.
 
-The transformers have an orientation dot on the package, but since they are symmetrical this does not matter.
+The transformers TR1 and TR2 have an orientation dot on the package.  For the ADT2-71T+ orintation is important (see above).
 
 ## Software load
 

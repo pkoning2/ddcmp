@@ -145,7 +145,7 @@ P 7300 3250
 F 0 "R2" H 7368 3296 50  0000 L CNN
 F 1 "1M" H 7368 3205 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7340 3240 50  0001 C CNN
-F 3 "" H 7300 3250 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 7300 3250 50  0001 C CNN
 F 4 "1.0MQBK-ND" H 7300 3250 50  0001 C CNN "Digikey part"
 F 5 "Yageo" H 7300 3250 50  0001 C CNN "Vendor"
 F 6 "CFR-25JB-52-1M" H 7300 3250 50  0001 C CNN "Vendor part"
@@ -159,7 +159,7 @@ P 2500 3600
 F 0 "R1" H 2568 3646 50  0000 L CNN
 F 1 "1M" H 2568 3555 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 2540 3590 50  0001 C CNN
-F 3 "" H 2500 3600 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 2500 3600 50  0001 C CNN
 F 4 "1.0MQBK-ND" H 2500 3600 50  0001 C CNN "Digikey part"
 F 5 "Yageo" H 2500 3600 50  0001 C CNN "Vendor"
 F 6 "CFR-25JB-52-1M" H 2500 3600 50  0001 C CNN "Vendor part"
@@ -229,7 +229,7 @@ P 4100 3750
 F 0 "C11" H 4215 3796 50  0000 L CNN
 F 1 "0.1uF" H 4215 3705 50  0000 L CNN
 F 2 "ddcmp_parts:C_Rect_L4.0mm_W2.5mm_P2.54mm" H 4138 3600 50  0001 C CNN
-F 3 "" H 4100 3750 50  0001 C CNN
+F 3 "https://content.kemet.com/datasheets/KEM_C1051_GOLDMAX_Z5U.pdf" H 4100 3750 50  0001 C CNN
 F 4 "399-14010-1-ND" H 4100 3750 50  0001 C CNN "Digikey part"
 F 5 "Kemet" H 4100 3750 50  0001 C CNN "Vendor"
 F 6 "C315C104M5U5TA7301" H 4100 3750 50  0001 C CNN "Vendor part"
@@ -244,8 +244,8 @@ Wire Wire Line
 Wire Wire Line
 	4100 4150 4450 4150
 Connection ~ 4450 4150
-Text Notes 6000 6250 0    100  ~ 0
-Note:\nThis entire page (the integral modem feature) is optional and\nmay be left unpopulated if the feature is not needed.
+Text Notes 6950 6250 0    100  ~ 0
+Note:\n1. This entire page (the integral modem feature) is\n   optional and may be left unpopulated if the\n   feature is not needed.\n2. Recommended part for TR1, TR2 is Mini-Circuits\n   TT1-6-X65+.  See doc/kicad.md for a discussion\n   of alternative parts.
 NoConn ~ 6750 2800
 Text GLabel 2800 1200 0    50   UnSpc ~ 0
 V3_3
@@ -314,7 +314,10 @@ P 6550 2800
 F 0 "R7" H 6618 2846 50  0000 L CNN
 F 1 "51" H 6618 2755 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 6590 2790 50  0001 C CNN
-F 3 "" H 6550 2800 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 6550 2800 50  0001 C CNN
+F 4 "51QBK-ND" H 6550 2800 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 6550 2800 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-51R" H 6550 2800 50  0001 C CNN "Vendor part"
 	1    6550 2800
 	1    0    0    -1  
 $EndComp
@@ -325,7 +328,10 @@ P 3100 3100
 F 0 "R6" H 3168 3146 50  0000 L CNN
 F 1 "51" H 3168 3055 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 3140 3090 50  0001 C CNN
-F 3 "" H 3100 3100 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 3100 3100 50  0001 C CNN
+F 4 "51QBK-ND" H 3100 3100 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 3100 3100 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-51R" H 3100 3100 50  0001 C CNN "Vendor part"
 	1    3100 3100
 	1    0    0    -1  
 $EndComp

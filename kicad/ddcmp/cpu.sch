@@ -171,7 +171,7 @@ P 8350 4200
 F 0 "R3" H 8418 4246 50  0000 L CNN
 F 1 "150" H 8418 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8390 4190 50  0001 C CNN
-F 3 "" H 8350 4200 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 8350 4200 50  0001 C CNN
 F 4 "150QBK-ND" H 8350 4200 50  0001 C CNN "Digikey part"
 F 5 "Yageo" H 8350 4200 50  0001 C CNN "Vendor"
 F 6 "CFR-25JB-52-150R" H 8350 4200 50  0001 C CNN "Vendor part"
@@ -185,7 +185,7 @@ P 8700 4200
 F 0 "R4" H 8768 4246 50  0000 L CNN
 F 1 "150" H 8768 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8740 4190 50  0001 C CNN
-F 3 "" H 8700 4200 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 8700 4200 50  0001 C CNN
 F 4 "150QBK-ND" H 8700 4200 50  0001 C CNN "Digikey part"
 F 5 "Yageo" H 8700 4200 50  0001 C CNN "Vendor"
 F 6 "CFR-25JB-52-150R" H 8700 4200 50  0001 C CNN "Vendor part"
@@ -199,7 +199,7 @@ P 9050 4200
 F 0 "R5" H 9118 4246 50  0000 L CNN
 F 1 "150" H 9118 4155 50  0000 L CNN
 F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 9090 4190 50  0001 C CNN
-F 3 "" H 9050 4200 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 9050 4200 50  0001 C CNN
 F 4 "150QBK-ND" H 9050 4200 50  0001 C CNN "Digikey part"
 F 5 "Yageo" H 9050 4200 50  0001 C CNN "Vendor"
 F 6 "CFR-25JB-52-150R" H 9050 4200 50  0001 C CNN "Vendor part"
@@ -285,12 +285,6 @@ Text HLabel 4750 4350 0    50   Input ~ 0
 RS232_RXCLK
 Text HLabel 4750 4450 0    50   Output ~ 0
 RS232_TXDATA
-Wire Wire Line
-	5250 3350 5150 3350
-Wire Wire Line
-	5250 3450 5150 3450
-NoConn ~ 5150 3350
-NoConn ~ 5150 3450
 $Comp
 L Connector_Generic:Conn_01x02 J4
 U 1 1 60AFBDD5
@@ -352,10 +346,6 @@ Wire Wire Line
 	6650 3150 9050 3150
 Wire Wire Line
 	9050 3150 9050 3650
-Wire Wire Line
-	5250 3550 5150 3550
-NoConn ~ 5150 3550
-NoConn ~ 5250 3650
 NoConn ~ 5250 3050
 NoConn ~ 5250 2950
 NoConn ~ 6650 3650
@@ -389,4 +379,30 @@ Wire Wire Line
 	6750 2650 6650 2650
 Text Notes 6750 2500 0    50   ~ 0
 VBus connected to Vsys for efficiency.\nSee Pico data sheet, section 4.5
+Wire Wire Line
+	4850 3350 5250 3350
+Wire Wire Line
+	4850 3450 5250 3450
+Wire Wire Line
+	4850 3550 5250 3550
+NoConn ~ 4850 3350
+NoConn ~ 4850 3450
+NoConn ~ 4850 3550
+Text Notes 4800 3350 2    50   ~ 0
+Loopback clock
+Text Notes 4800 3450 2    50   ~ 0
+Loopback data
+Text Notes 4800 3550 2    50   ~ 0
+Integral modem recovered data
+Text Notes 4150 3000 2    50   ~ 0
+Install jumper for power on BIST
+Wire Wire Line
+	5250 3650 4850 3650
+NoConn ~ 4850 3650
+Text Notes 4800 3650 2    50   ~ 0
+Integral modem receive strobe
+Text Notes 4950 3250 2    50   ~ 0
+The four pins listed below are no-connect, but they can be\nused as test points to observe internal status of the framer. 
+Text Notes 6850 6150 0    100  ~ 0
+Note:\n1. J1 can be omitted if the debug UART is not needed.\n2. J4 can be omitted if power on BIST is not needed.\n3. D1, D2, and/or D3 and R3, R4, and/or R5 can be\n   omitted if the corresponding indicator is not needed.
 $EndSCHEMATC

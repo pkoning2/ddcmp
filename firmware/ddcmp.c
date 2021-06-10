@@ -107,6 +107,7 @@ bool bist = false;
 // reserved for the purpose and configured as needed just like other
 // pins.
 #define RXRECDATA 8     // Integral modem recovered receive bit stream
+#define IMSTROBE  9     // Integral modem receive strobe (RXRECDATA + 1)
 #define LCPIN    6      // Loopback clock pin
 #define LDPIN    7      // Loopback data pin
 
@@ -123,6 +124,7 @@ const uint8_t opins[] = {
     ACTLED,
     TXLED,
     RXRECDATA,
+    IMSTROBE,
     LCPIN,
     LDPIN
 };
@@ -155,6 +157,7 @@ const uint8_t opins[] = {
 #define RS232_LOCAL_CLK 2
 #define INT_LOOPBACK    4
 #define BIST            8
+#define SPLIT           16
 
 // DDCMP framing state machine state codes
 enum ddcmp_state
@@ -242,6 +245,7 @@ struct command_msg_t
     uint8_t cmd;
     uint16_t mflags __attribute__ ((packed));
     uint32_t speed __attribute__ ((packed));
+    uint32_t txspeed __attribute__ ((packed)); // Optional: split speed
 };
 
 enum ddcmp_action
@@ -263,6 +267,7 @@ struct status_msg_t
     uint8_t on;                     // "on" flags
     uint16_t mflags;
     uint32_t speed;
+    uint32_t txspeed;
     uint32_t rxframes;
     uint32_t rxbytes;
     uint32_t txframes;
@@ -540,20 +545,27 @@ void ddcmp_cpu1 (void)
     }
 }
 
-float clkdiv (int freq)
-{
-    return clock_get_hz (clk_sys) / ((float) freq);
-}
-
 // Set pio_sm_config clkdiv parameters given desired clock frequency.
-// Lifted, with slight mods, from rp2_pio.c in micropython.
+// More precisely, we set the dividers to the nearest multiple of
+// 0.25.  That avoids jitter on the state machine period, since the
+// state machines all run at multiples of 4 times the nominal data
+// rate.
+//
+// Lifted, with some mods, from rp2_pio.c in micropython.
 void sm_config_set_clkdiv_freq (pio_sm_config *c, int freq)
 {
     // Frequency given in Hz, compute clkdiv from it.
-    float div = clkdiv (freq);
+    uint i, f;
+    uint64_t q;
+
+    q = (clock_get_hz (clk_sys) * 8) / freq;
+    q = (q + 1) / 2;
     
-    sm_config_set_clkdiv(c, div);
-    DPRINTF ("Clock div %f\n", div);
+    i = q / 4;
+    f = (q & 3) * 64;
+
+    sm_config_set_clkdiv_int_frac (c, i, f);
+    DPRINTF ("Clock freq %d div %d frac %d\n", freq, i, f);
 }
 
 // PIO state machine setup handlers.  Each of these get the "default"
@@ -668,12 +680,14 @@ static pio_sm_config inmodem_rxbit_config (uint offset, uint speed, int rxpin)
     imbittop = offset;
     
     // clock from bit rate
-    sm_config_set_clkdiv_freq (&c, speed * 16);
-    // input: integral modem rx data; also jump pin
+    sm_config_set_clkdiv_freq (&c, speed * 12);
+    // input and jump pin: integral modem rx data
     sm_config_set_in_pins (&c, rxpin);
     sm_config_set_jmp_pin (&c, rxpin);
-    // output: integral modem recovered data
-    sm_config_set_out_pins (&c, RXRECDATA, 1);
+    // set: strobe signal
+    sm_config_set_set_pins (&c, IMSTROBE, 1);
+    // side set: integral modem recovered data and strobe
+    sm_config_set_sideset_pins (&c, RXRECDATA);
 
     return c;
 }
@@ -703,7 +717,7 @@ static pio_sm_config freq_config (uint offset, int pin)
     return c;
 }
 
-static void setup_pios (uint mflags, uint speed)
+static void setup_pios (uint mflags, uint speed, uint txspeed)
 {
     int i;
     uint offset;
@@ -721,6 +735,7 @@ static void setup_pios (uint mflags, uint speed)
     pio_gpio_init (TXPIO, CLKOUT);
     pio_gpio_init (TXPIO, IMTXDATA);
     pio_gpio_init (RXPIO, RXRECDATA);
+    pio_gpio_init (RXPIO, IMSTROBE);
     pio_gpio_init (TXPIO, LCPIN);
     pio_gpio_init (TXPIO, LDPIN);
     // LEDs
@@ -766,7 +781,7 @@ static void setup_pios (uint mflags, uint speed)
         // Second argument true means configure for integral modem case.
         rxconfig = local_clk_recv_config (offset, RXRECDATA);
         offset = pio_add_program (TXPIO, &inmodem_xmit_program);
-        txconfig = inmodem_xmit_config (offset, speed, txpin);
+        txconfig = inmodem_xmit_config (offset, txspeed, txpin);
         offset = pio_add_program (IMBITPIO, &inmodem_rxbit_program);
         imconfig = inmodem_rxbit_config (offset, speed, rxpin);
         pio_sm_init (IMBITPIO, IMBITSM, offset, &imconfig);
@@ -775,7 +790,7 @@ static void setup_pios (uint mflags, uint speed)
         // ends up not having output enabled.
         pio_sm_set_consecutive_pindirs (RXPIO, RXSM, RXRECDATA, 1, false);
         pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, rxpin, 1, false);
-        pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, RXRECDATA, 1, true);
+        pio_sm_set_consecutive_pindirs (IMBITPIO, IMBITSM, RXRECDATA, 2, true);
         pio_sm_set_consecutive_pindirs (TXPIO, TXSM, txpin, 1, true);
         // Start the bit stream recovery SM
         pio_sm_set_enabled (IMBITPIO, IMBITSM, true);
@@ -984,10 +999,9 @@ static void stop_ddcmp (void)
     gpio_pull_up (LOOPTEST);
 }
 
-static void start_ddcmp (uint mflags, uint speed)
+static void start_ddcmp (uint mflags, uint speed, uint txspeed)
 {
     int i;
-    int maxmul = 4;
 
     // Fail if already active
     if (rx_enabled)
@@ -1007,18 +1021,21 @@ static void start_ddcmp (uint mflags, uint speed)
     if (mflags & INT_MODEM)
     {
         // Internal modem
-        maxmul = 16;
         if (speed == 0 && (mflags & INT_LOOPBACK) != 0)
         {
             // For internal loopback, supply default speed of 1 Mbps
             speed = 1000000;
         }
     }
-    if ((mflags & (INT_MODEM | RS232_LOCAL_CLK)) != 0 &&
-        (clkdiv (speed * 4) > 65535 ||
-         clkdiv (speed * maxmul) < 1))
+    if (!(mflags & SPLIT) || !(mflags & INT_MODEM))
     {
-        DPRINTF ("speed out of range, %d\n", speed);
+        txspeed = speed;
+    }
+    if ((mflags & (INT_MODEM | RS232_LOCAL_CLK)) != 0 &&
+        ((speed > 10000000 || speed < 500) ||
+         (txspeed > 10000000 || txspeed < 500)))
+    {
+        DPRINTF ("speed out of range, %d %d\n", speed, txspeed);
         status_msg.last_cmd_sts = CMD_BAD_SPEED;
         return;
     }
@@ -1029,7 +1046,7 @@ static void start_ddcmp (uint mflags, uint speed)
     }
     rbuf_empty = rbuf_fill = 0;
 
-    setup_pios (mflags, speed);
+    setup_pios (mflags, speed, txspeed);
 
     DPRINTF ("Configuring DMA\n");
     // Build the DMA config settings (DMA CTRL register value) for the
@@ -1056,6 +1073,7 @@ static void start_ddcmp (uint mflags, uint speed)
     status_msg.on = ON_ACT;
     status_msg.mflags = mflags;
     status_msg.speed = speed;
+    status_msg.txspeed = txspeed;
     start_cpu1 ();
     status_msg.last_cmd_sts = CMD_OK;
     gpio_put (ACTLED, true);
@@ -1172,7 +1190,9 @@ static void command (const void *_cmd, uint16_t size)
     // Always reply with status
     send_status = true;
     
-    if (size < 2 || (cmd->cmd == REQ_START && size < sizeof (*cmd)))
+    if (size < 2 ||
+        (cmd->cmd == REQ_START &&
+         (size < 8 || (cmd->mflags & SPLIT) && size < sizeof (*cmd))))
     {
         DPRINTF ("Command too short, cmd %d len %d\n", cmd->cmd, size);
         status_msg.last_cmd_sts = CMD_BAD_MSG;
@@ -1184,7 +1204,7 @@ static void command (const void *_cmd, uint16_t size)
     case REQ_STATUS:
         break;
     case REQ_START:
-        start_ddcmp (cmd->mflags, cmd->speed);
+        start_ddcmp (cmd->mflags, cmd->speed, cmd->txspeed);
         break;
     case REQ_STOP:
         rx_enabled = false;
@@ -1422,7 +1442,7 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
         float freq;
         if (cycles != 0)
         {
-            freq = clkdiv (cycles * 2 + 68) * 32;
+            freq = ((float) clock_get_hz (clk_sys) / ((cycles * 2 + 68))) * 32;
         }
         else
         {
@@ -1588,7 +1608,7 @@ int main ()
         DPRINTF ("Selftest requested\n");
         // We use the integral modem (since that's the most complex
         // case) at max standard speed (1 Mb/s).
-        start_ddcmp (BIST | INT_LOOPBACK | INT_MODEM, 1000000);
+        start_ddcmp (BIST | INT_LOOPBACK | INT_MODEM, 1000000, 1000000);
     }
     
     /* initialize TinyUSB */
