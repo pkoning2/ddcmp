@@ -42,14 +42,6 @@ Wire Wire Line
 	6400 2850 6150 2850
 Wire Wire Line
 	6400 3000 6400 2850
-Wire Wire Line
-	6750 3000 6550 3000
-Wire Wire Line
-	6400 2600 6550 2600
-Wire Wire Line
-	6400 2750 6400 2600
-Wire Wire Line
-	6150 2750 6400 2750
 $Comp
 L ddcmp_symbols:max3491ecpd U?
 U 1 1 60A50967
@@ -265,8 +257,6 @@ Wire Wire Line
 	7850 3000 8700 3000
 Text HLabel 8000 3200 2    50   Output ~ 0
 IM_TXD_N
-Text HLabel 8000 2400 2    50   Output ~ 0
-IM_TDX
 Wire Wire Line
 	2100 2900 2100 2650
 Wire Wire Line
@@ -284,7 +274,7 @@ Wire Wire Line
 Text HLabel 1900 3550 0    50   Input ~ 0
 IM_RXD_N
 Text HLabel 1900 2650 0    50   Input ~ 0
-IM_RDX
+IM_RXD
 Wire Wire Line
 	4550 3150 4100 3150
 Wire Wire Line
@@ -308,20 +298,6 @@ Wire Wire Line
 Wire Wire Line
 	2800 1200 4100 1200
 $Comp
-L ddcmp_symbols:R_US R7
-U 1 1 60BD0969
-P 6550 2800
-F 0 "R7" H 6618 2846 50  0000 L CNN
-F 1 "51" H 6618 2755 50  0000 L CNN
-F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 6590 2790 50  0001 C CNN
-F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 6550 2800 50  0001 C CNN
-F 4 "51QBK-ND" H 6550 2800 50  0001 C CNN "Digikey part"
-F 5 "Yageo" H 6550 2800 50  0001 C CNN "Vendor"
-F 6 "CFR-25JB-52-51R" H 6550 2800 50  0001 C CNN "Vendor part"
-	1    6550 2800
-	1    0    0    -1  
-$EndComp
-$Comp
 L ddcmp_symbols:R_US R6
 U 1 1 60BD1A0F
 P 3100 3100
@@ -336,16 +312,6 @@ F 6 "CFR-25JB-52-51R" H 3100 3100 50  0001 C CNN "Vendor part"
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6550 2950 6550 3000
-Connection ~ 6550 3000
-Wire Wire Line
-	6550 3000 6400 3000
-Wire Wire Line
-	6550 2650 6550 2600
-Connection ~ 6550 2600
-Wire Wire Line
-	6550 2600 6750 2600
-Wire Wire Line
 	3100 2950 3100 2900
 Connection ~ 3100 2900
 Wire Wire Line
@@ -355,4 +321,41 @@ Wire Wire Line
 Connection ~ 3100 3300
 Wire Wire Line
 	3100 3300 3300 3300
+Text HLabel 8000 2400 2    50   Output ~ 0
+IM_TXD
+NoConn ~ 7150 2800
+NoConn ~ 3000 3100
+NoConn ~ 2600 3100
+Wire Wire Line
+	6400 3000 6500 3000
+Wire Wire Line
+	6250 2600 6250 2750
+Wire Wire Line
+	6250 2750 6150 2750
+Wire Wire Line
+	6250 2600 6500 2600
+$Comp
+L ddcmp_symbols:R_US R7
+U 1 1 60E4A38A
+P 6500 2800
+F 0 "R7" H 6568 2846 50  0000 L CNN
+F 1 "51" H 6568 2755 50  0000 L CNN
+F 2 "ddcmp_parts:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 6540 2790 50  0001 C CNN
+F 3 "https://www.yageo.com/upload/media/product/products/datasheet/lr/Yageo_LR_CFR_1.pdf" H 6500 2800 50  0001 C CNN
+F 4 "51QBK-ND" H 6500 2800 50  0001 C CNN "Digikey part"
+F 5 "Yageo" H 6500 2800 50  0001 C CNN "Vendor"
+F 6 "CFR-25JB-52-51R" H 6500 2800 50  0001 C CNN "Vendor part"
+	1    6500 2800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6500 2600 6500 2650
+Connection ~ 6500 2600
+Wire Wire Line
+	6500 2600 6750 2600
+Wire Wire Line
+	6500 2950 6500 3000
+Connection ~ 6500 3000
+Wire Wire Line
+	6500 3000 6750 3000
 $EndSCHEMATC

@@ -45,7 +45,8 @@ Here are all the parts in the design, with schematic reference (also on the boar
 | J4 | TEST | 2-pin header | Harwin Inc. | 952-2261-ND |
 | J5 | DTE | DB25 male connector | Amphenol ICC | L717SDB25P1ACH4F-ND |
 | J6 | DCE | DB25 female connector | Amphenol ICC | L77SDB25S1ACH3R-ND |
-| J7 | Bulkhead | "Berg" 40 pin connector | Amphenol ICC | 609-1779-ND |
+| J7 | To BC55 | "Berg" 40 pin connector | Amphenol ICC | 609-1779-ND |
+| J8 | To LU | "Berg" 40 pin connector | Amphenol ICC | 609-1779-ND |
 | R1 | 1M | Carbon film resistor | Yageo | 1.0MQBK-ND |
 | R2 | 1M | Carbon film resistor | Yageo | 1.0MQBK-ND |
 | R3 | 150 | Carbon film resistor | Yageo | 150QBK-ND |
@@ -75,8 +76,11 @@ The options are:
 5. Integral modem support: C11, J2, J3, R1, R2, R6, R7, TR1, TR2, U2.
 6. Integral modem direct coax connection: J2, J3.
 7. DEC BC55 bulkhead connection support: J7.
-8. Debug UART connection: J1.
-9. Easy access to built-in selftest feature: J4.
+8. Connection to DMR/DMP/DMV line unit, or DMC RS-232 line unit: J8.
+9. Debug UART connection: J1.
+10. Easy access to built-in selftest feature: J4.
+
+The BOM and schematic shows a green LED for the SYN indicator, yellow for RX, and red for TX.  You can use other combinations of red, yellow, and/or green if you prefer.  Note that blue or white LEDs have too high a forward voltage drop to be used here since the output pins are 3 volt outputs.
 
 ### Transformer alternatives
 
@@ -86,14 +90,22 @@ If you have trouble getting this part, several other Mini-Circuits transformers 
 
 #### Tested alternatives
 
-1. Mini-Circuits ADT1-6T+.  That one works fine at 1 Mbps but its low frequency limit makes it marginal at best at 56 kbps.
+1. Mini-Circuits ADT1-6T+ (Digikey 3157-ADT1-6T+CT-ND).  That one works fine at 1 Mbps but its low frequency limit makes it marginal at best at 56 kbps.
 
 #### Untested alternatives
 
-1. Mini-Circuits ADTT1-6+ appears to be suitable judging by its specifications.
+1. Mini-Circuits ADTT1-6+ (Digikey 3157-ADTT1-6+CT-ND) appears to be suitable judging by its specifications.
 
-2. Mini-Circuits ADT2-71T+ may work.  This is a 1:2 impedance transformer.  TheMAX3491 transceiver is designed for either 50 ohm or 100 ohm load so this should be fine, but the output voltage at the 50 ohm connector will be somewhat reduced.  So long as the cables are not too long I would not expect a problem.  If this option is used, replace R6 and R7 by 100 ohm resistors.  Also, with this part the correct orientation is important.
- 
+2. Mini-Circuits ADT2-71T+ (Digikey 3157-ADT2-71T+CT-ND) may work.  This is a 1:2 impedance transformer.  The MAX3491 transceiver is designed for either 50 ohm or 100 ohm load so this should be fine, but the output voltage at the 50 ohm connector will be somewhat reduced.  So long as the cables are not too long I would not expect a problem.  If this option is used, replace R6 and R7 by 100 ohm resistors.  Also, with this part the correct orientation is important -- the dot on the case needs to go where it is marked on the board.
+
+### Integral modem terminations
+
+The framers has on-board 51 ohm termination resistors for the integral modem connections.  If you use a BC55A integral modem bulkhead panel, do not install termination resistors on the panel, or, if you want to use those terminations, omit R6 and R7 from the framer.
+
+If you want to use the framer in a multipoint configuration, you need to omit the on-board terminations and use cable termination (at the endpoints) instead.  Note that the framer firmware does not currently support multipoint operation, but it is probably possible to create firmware that does with the existing board; I have not studied this in detail.
+
+If you use the line unit 40-pin connection (J8) with the integral modem, you will only have a single termination on each connection rather than two, which may affect the signal integrity at low speeds.  If you get CRC errors at 56 kbps, replace R6 and R7 by 22 or 24 ohm resistors.
+
 ### Assembly suggestions
 
 I found that this order of installing the components works well:
@@ -103,9 +115,9 @@ I found that this order of installing the components works well:
 4. LEDs
 5. U2, U3, U4 DIP integrated circuits; also TR1 and TR2, if through-hole
 6. J1, J4 pin headers
-7. J2, J3, J5, J6, J7 connectors.
+7. J2, J3, J5, J6, J7, J8 connectors.
 
-Note the correct orientation of D1, D2, D3, J7, U1, U2, U3, and U4.  U1 is oriented with the USB at the top of the board and all the contacts matched to pads on the board.  The other three ICs have a square pad at pin 1.  J7 (the 40-pin connector) has the keying notches towards the top of the board.  The LEDs have their flat side at the square pad.
+Note the correct orientation of D1, D2, D3, J7, J8, U1, U2, U3, and U4.  U1 is oriented with the USB at the top of the board and all the contacts matched to pads on the board.  The other three ICs have a square pad at pin 1.  J7 (the 40-pin connector) has the keying notches towards the top of the board.  The LEDs have their flat side at the square pad.
 
 The transformers TR1 and TR2 have an orientation dot on the package.  For the ADT2-71T+ orintation is important (see above).
 

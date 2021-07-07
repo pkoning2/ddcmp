@@ -409,8 +409,8 @@ Text HLabel 6550 2350 0    50   Input ~ 0
 RS232_ENABLE
 Text HLabel 2550 2350 0    50   Input ~ 0
 RS232_ENABLE
-Text Notes 6950 6250 0    100  ~ 0
-Note:\n1. This entire page (RS-232 interface) except for J7 is \n   optional and may be left unpopulated if not needed.\n2. J5 (male DB25, DTE connector) may be \n   omitted if connection to a modem is not needed.\n3. J6 (female DB25, DCE connector) may be \n   omitted if direct connection to a DTE\n   (with the framer as clock source) is not needed.\n4. J7 (40 pin header) may be omitted if connection \n   to a DEC bulkhead panel is not needed; this\n   connector is shared between RS-232 and integral\n   modem features
+Text Notes 6850 6450 0    100  ~ 0
+Note:\n1. This entire page (RS-232 interface) except for J7,\n   J8 is optional and may be omitted if not needed.\n2. J5 (male DB25, DTE connector) may be \n   omitted if connection to a modem is not needed.\n3. J6 (female DB25, DCE connector) may be \n   omitted if direct connection to a DTE\n   (with the framer as clock source) is not needed.\n4. J7 (40 pin header) may be omitted if connection \n   to a DEC bulkhead panel is not needed; this\n   connector is shared between RS-232 and integral\n   modem features\n5. J8 (40 pin header) may be omitted if connection\n   to a DEC line unit is not needed.
 Wire Wire Line
 	2900 2600 2800 2600
 Wire Wire Line
@@ -474,85 +474,85 @@ TXCLK
 $Comp
 L Connector:DB25_Male_MountingHoles J5
 U 1 1 60B31BFA
-P 2100 5600
-F 0 "J5" H 2280 5602 50  0000 L CNN
-F 1 "DTE" H 2280 5511 50  0000 L CNN
-F 2 "ddcmp_parts:Amphenol_DB25M_PCB" H 2100 5600 50  0001 C CNN
-F 3 "https://www.amphenol-icc.com/media/wysiwyg/files/drawing/l717sdxxxp1ach4f.pdf" H 2100 5600 50  0001 C CNN
-F 4 "Amphenol ICC" H 2100 5600 50  0001 C CNN "Vendor"
-F 5 "L717SDB25P1ACH4F-ND" H 2100 5600 50  0001 C CNN "Digikey part"
-F 6 "L717SDB25P1ACH4F" H 2100 5600 50  0001 C CNN "Vendor part"
-	1    2100 5600
+P 1700 5500
+F 0 "J5" H 1880 5502 50  0000 L CNN
+F 1 "DTE" H 1880 5411 50  0000 L CNN
+F 2 "ddcmp_parts:Amphenol_DB25M_PCB" H 1700 5500 50  0001 C CNN
+F 3 "https://www.amphenol-icc.com/media/wysiwyg/files/drawing/l717sdxxxp1ach4f.pdf" H 1700 5500 50  0001 C CNN
+F 4 "Amphenol ICC" H 1700 5500 50  0001 C CNN "Vendor"
+F 5 "L717SDB25P1ACH4F-ND" H 1700 5500 50  0001 C CNN "Digikey part"
+F 6 "L717SDB25P1ACH4F" H 1700 5500 50  0001 C CNN "Vendor part"
+	1    1700 5500
 	1    0    0    -1  
 $EndComp
 $Comp
 L Connector:DB25_Female_MountingHoles J6
 U 1 1 60B3290B
-P 4050 5600
-F 0 "J6" H 4230 5602 50  0000 L CNN
-F 1 "DCE" H 4230 5511 50  0000 L CNN
-F 2 "ddcmp_parts:Amphenol_DB25F_PCB" H 4050 5600 50  0001 C CNN
-F 3 "https://www.amphenol-icc.com/media/wysiwyg/files/drawing/l77sdxxxs1ach3r.pdf" H 4050 5600 50  0001 C CNN
-F 4 "L77SDB25S1ACH3R-ND" H 4050 5600 50  0001 C CNN "Digikey part"
-F 5 "Amphenol ICC" H 4050 5600 50  0001 C CNN "Vendor"
-F 6 "L77SDB25S1ACH3R" H 4050 5600 50  0001 C CNN "Vendor part"
-	1    4050 5600
+P 3200 5500
+F 0 "J6" H 3380 5502 50  0000 L CNN
+F 1 "DCE" H 3380 5411 50  0000 L CNN
+F 2 "ddcmp_parts:Amphenol_DB25F_PCB" H 3200 5500 50  0001 C CNN
+F 3 "https://www.amphenol-icc.com/media/wysiwyg/files/drawing/l77sdxxxs1ach3r.pdf" H 3200 5500 50  0001 C CNN
+F 4 "L77SDB25S1ACH3R-ND" H 3200 5500 50  0001 C CNN "Digikey part"
+F 5 "Amphenol ICC" H 3200 5500 50  0001 C CNN "Vendor"
+F 6 "L77SDB25S1ACH3R" H 3200 5500 50  0001 C CNN "Vendor part"
+	1    3200 5500
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0105
 U 1 1 60A731C7
-P 2100 7150
-F 0 "#PWR0105" H 2100 6900 50  0001 C CNN
-F 1 "GND" H 2105 6977 50  0000 C CNN
-F 2 "" H 2100 7150 50  0001 C CNN
-F 3 "" H 2100 7150 50  0001 C CNN
-	1    2100 7150
+P 1700 7050
+F 0 "#PWR0105" H 1700 6800 50  0001 C CNN
+F 1 "GND" H 1705 6877 50  0000 C CNN
+F 2 "" H 1700 7050 50  0001 C CNN
+F 3 "" H 1700 7050 50  0001 C CNN
+	1    1700 7050
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR0114
 U 1 1 60A73F97
-P 4050 7150
-F 0 "#PWR0114" H 4050 6900 50  0001 C CNN
-F 1 "GND" H 4055 6977 50  0000 C CNN
-F 2 "" H 4050 7150 50  0001 C CNN
-F 3 "" H 4050 7150 50  0001 C CNN
-	1    4050 7150
+P 3200 7050
+F 0 "#PWR0114" H 3200 6800 50  0001 C CNN
+F 1 "GND" H 3205 6877 50  0000 C CNN
+F 2 "" H 3200 7050 50  0001 C CNN
+F 3 "" H 3200 7050 50  0001 C CNN
+	1    3200 7050
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	4050 7150 4050 7100
+	3200 7050 3200 7000
 Wire Wire Line
-	2100 7000 2100 7100
+	1700 6900 1700 7000
 Wire Wire Line
-	1800 6800 1650 6800
+	1400 6700 1250 6700
 Wire Wire Line
-	1650 6800 1650 7100
+	1250 6700 1250 7000
 Wire Wire Line
-	1650 7100 2100 7100
-Connection ~ 2100 7100
+	1250 7000 1700 7000
+Connection ~ 1700 7000
 Wire Wire Line
-	2100 7100 2100 7150
+	1700 7000 1700 7050
 Wire Wire Line
-	3750 4400 3500 4400
+	2900 4300 2650 4300
 Wire Wire Line
-	3500 7100 4050 7100
-Connection ~ 4050 7100
+	2650 7000 3200 7000
+Connection ~ 3200 7000
 Wire Wire Line
-	4050 7100 4050 7000
+	3200 7000 3200 6900
 Wire Wire Line
-	3500 4400 3500 5600
+	2650 4300 2650 5500
 Wire Wire Line
-	3750 5600 3500 5600
-Connection ~ 3500 5600
+	2900 5500 2650 5500
+Connection ~ 2650 5500
 Wire Wire Line
-	3500 5600 3500 7100
+	2650 5500 2650 7000
 Wire Wire Line
-	1800 5600 1650 5600
+	1400 5500 1250 5500
 Wire Wire Line
-	1650 5600 1650 6800
-Connection ~ 1650 6800
+	1250 5500 1250 6700
+Connection ~ 1250 6700
 Wire Wire Line
 	8400 2800 8650 2800
 Text Label 8650 2800 0    50   ~ 0
@@ -560,241 +560,393 @@ RS232_0
 $Comp
 L ddcmp_symbols:Berg_40_pin_DEC_labeling J?
 U 1 1 60AB6B87
-P 5700 5600
+P 4500 5450
 AR Path="/60A471E8/60AB6B87" Ref="J?"  Part="1" 
 AR Path="/60A47002/60AB6B87" Ref="J7"  Part="1" 
-F 0 "J7" H 5750 6717 50  0000 C CNN
-F 1 "Bulkhead" H 5750 6626 50  0000 C CNN
-F 2 "ddcmp_parts:Berg_40_pin_DEC_pinout" H 5700 5600 50  0001 C CNN
-F 3 "https://cdn.amphenol-icc.com/media/wysiwyg/files/drawing/75869.pdf" H 5700 5600 50  0001 C CNN
-F 4 "609-1779-ND" H -300 -50 50  0001 C CNN "Digikey part"
-F 5 "Amphenol ICC" H -300 -50 50  0001 C CNN "Vendor"
-F 6 "75869-107LF" H -300 -50 50  0001 C CNN "Vendor part"
-	1    5700 5600
+F 0 "J7" H 4550 6567 50  0000 C CNN
+F 1 "To BC55" H 4550 6476 50  0000 C CNN
+F 2 "ddcmp_parts:Berg_40_pin_DEC_pinout" H 4500 5450 50  0001 C CNN
+F 3 "https://cdn.amphenol-icc.com/media/wysiwyg/files/drawing/75869.pdf" H 4500 5450 50  0001 C CNN
+F 4 "609-1779-ND" H -1500 -200 50  0001 C CNN "Digikey part"
+F 5 "Amphenol ICC" H -1500 -200 50  0001 C CNN "Vendor"
+F 6 "75869-107LF" H -1500 -200 50  0001 C CNN "Vendor part"
+	1    4500 5450
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	5500 4700 5350 4700
+	4300 4550 4100 4550
 Wire Wire Line
-	5350 4700 5350 6600
+	4100 4550 4100 6450
 $Comp
 L power:GND #PWR?
 U 1 1 60AB6B8F
-P 5350 6800
+P 4100 6650
 AR Path="/60A471E8/60AB6B8F" Ref="#PWR?"  Part="1" 
 AR Path="/60A47002/60AB6B8F" Ref="#PWR09"  Part="1" 
-F 0 "#PWR09" H 5350 6550 50  0001 C CNN
-F 1 "GND" H 5355 6627 50  0000 C CNN
-F 2 "" H 5350 6800 50  0001 C CNN
-F 3 "" H 5350 6800 50  0001 C CNN
-	1    5350 6800
+F 0 "#PWR09" H 4100 6400 50  0001 C CNN
+F 1 "GND" H 4105 6477 50  0000 C CNN
+F 2 "" H 4100 6650 50  0001 C CNN
+F 3 "" H 4100 6650 50  0001 C CNN
+	1    4100 6650
 	1    0    0    -1  
 $EndComp
 $Comp
 L power:GND #PWR?
 U 1 1 60AB6B95
-P 6150 6750
+P 4950 6600
 AR Path="/60A471E8/60AB6B95" Ref="#PWR?"  Part="1" 
 AR Path="/60A47002/60AB6B95" Ref="#PWR010"  Part="1" 
-F 0 "#PWR010" H 6150 6500 50  0001 C CNN
-F 1 "GND" H 6155 6577 50  0000 C CNN
-F 2 "" H 6150 6750 50  0001 C CNN
-F 3 "" H 6150 6750 50  0001 C CNN
-	1    6150 6750
+F 0 "#PWR010" H 4950 6350 50  0001 C CNN
+F 1 "GND" H 4955 6427 50  0000 C CNN
+F 2 "" H 4950 6600 50  0001 C CNN
+F 3 "" H 4950 6600 50  0001 C CNN
+	1    4950 6600
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6150 6750 6150 6600
+	4950 6600 4950 6450
 Wire Wire Line
-	6150 6600 6000 6600
+	4950 6450 4800 6450
 Wire Wire Line
-	6150 6600 6150 4700
+	4950 6450 4950 4550
 Wire Wire Line
-	6150 4700 6000 4700
-Connection ~ 6150 6600
+	4950 4550 4800 4550
+Connection ~ 4950 6450
 Wire Wire Line
-	5500 5800 5250 5800
-Text Label 5150 5800 2    50   ~ 0
+	4300 5650 4000 5650
+Text Label 3950 5650 2    50   ~ 0
 RS232_1
 Wire Wire Line
-	5500 5400 5250 5400
+	4300 5250 4000 5250
+Connection ~ 4000 5650
 Wire Wire Line
-	5250 5400 5250 5800
-Connection ~ 5250 5800
+	4000 5650 3950 5650
 Wire Wire Line
-	5250 5800 5150 5800
+	4300 6150 3950 6150
 Wire Wire Line
-	5500 6300 5150 6300
-Wire Wire Line
-	5500 6000 5150 6000
-Text Label 5150 6300 2    50   ~ 0
+	4300 5850 3950 5850
+Text Label 3950 6150 2    50   ~ 0
 RXD
-Text Label 5150 6000 2    50   ~ 0
+Text Label 3950 5850 2    50   ~ 0
 RXCLK
 Wire Wire Line
-	5500 6100 5150 6100
-Text Label 5150 6100 2    50   ~ 0
+	4300 5950 3950 5950
+Text Label 3950 5950 2    50   ~ 0
 TXCLK
 Wire Wire Line
-	5500 6400 5150 6400
-Text Label 5150 6400 2    50   ~ 0
+	4300 6250 3950 6250
+Text Label 3950 6250 2    50   ~ 0
 TXD
 Wire Wire Line
-	5500 5300 5150 5300
+	4300 5150 3950 5150
 Wire Wire Line
-	5500 5200 5150 5200
+	4300 5050 3950 5050
 Wire Wire Line
-	5500 5000 5150 5000
+	4300 4850 3950 4850
 Wire Wire Line
-	6000 5000 6300 5000
-Text HLabel 6300 5000 2    50   Output ~ 0
+	4800 4850 5100 4850
+Text HLabel 5200 4300 2    50   Output ~ 0
 IM_RXD_N
-Text HLabel 5150 5000 0    50   Output ~ 0
-IM_RDX
-Text HLabel 5150 5200 0    50   Input ~ 0
+Text HLabel 3950 4850 0    50   Output ~ 0
+IM_RXD
+Text HLabel 3950 5050 0    50   Input ~ 0
 IM_TXD
-Text HLabel 5150 5300 0    50   Input ~ 0
+Text HLabel 3950 5150 0    50   Input ~ 0
 IM_TXD_N
 Wire Wire Line
-	1800 5500 1550 5500
+	1400 5400 1150 5400
 Wire Wire Line
-	3750 5800 3400 5800
-Text Label 1400 5500 2    50   ~ 0
+	2900 5700 2550 5700
+Text Label 1000 5400 2    50   ~ 0
 RS232_1
-Text Label 3300 5800 2    50   ~ 0
+Text Label 2450 5700 2    50   ~ 0
 RS232_1
 Wire Wire Line
-	3750 5400 3400 5400
+	2900 5300 2550 5300
 Wire Wire Line
-	3400 5400 3400 5800
-Connection ~ 3400 5800
+	2550 5300 2550 5700
+Connection ~ 2550 5700
 Wire Wire Line
-	3400 5800 3300 5800
+	2550 5700 2450 5700
 Wire Wire Line
-	3750 6100 3300 6100
-Text Label 3300 6100 2    50   ~ 0
+	2900 6000 2450 6000
+Text Label 2450 6000 2    50   ~ 0
 RS232_0
 Wire Wire Line
-	1800 6200 1550 6200
+	1400 6100 1150 6100
 Wire Wire Line
-	1550 6200 1550 5500
-Connection ~ 1550 5500
+	1150 6100 1150 5400
+Connection ~ 1150 5400
 Wire Wire Line
-	1550 5500 1400 5500
+	1150 5400 1000 5400
 Wire Wire Line
-	3750 5200 3400 5200
+	2900 5100 2550 5100
 Wire Wire Line
-	3400 5200 3400 5400
-Connection ~ 3400 5400
+	2550 5100 2550 5300
+Connection ~ 2550 5300
 Wire Wire Line
-	1800 6600 1400 6600
-Text Label 1400 6600 2    50   ~ 0
+	1400 6500 1000 6500
+Text Label 1000 6500 2    50   ~ 0
 TXD
 Wire Wire Line
-	1800 6400 1400 6400
-Text Label 1400 6400 2    50   ~ 0
+	1400 6300 1000 6300
+Text Label 1000 6300 2    50   ~ 0
 RXD
 Wire Wire Line
-	3750 4600 3300 4600
-Text Label 3300 4600 2    50   ~ 0
+	2900 4500 2450 4500
+Text Label 2450 4500 2    50   ~ 0
 RXD
 Wire Wire Line
-	3750 4800 3300 4800
-Text Label 3300 4800 2    50   ~ 0
+	2900 4700 2450 4700
+Text Label 2450 4700 2    50   ~ 0
 TXD
 Wire Wire Line
-	1800 6500 1400 6500
+	1400 6400 1000 6400
 Wire Wire Line
-	1800 6100 1400 6100
+	1400 6000 1000 6000
 Wire Wire Line
-	3750 5100 3300 5100
+	2900 5000 2450 5000
 Wire Wire Line
-	3750 4700 3300 4700
-NoConn ~ 3750 4500
-NoConn ~ 3750 4900
-NoConn ~ 3750 5000
-NoConn ~ 3750 5300
-NoConn ~ 3750 5500
-NoConn ~ 3750 5700
-NoConn ~ 3750 5900
-NoConn ~ 3750 6000
-NoConn ~ 3750 6200
-NoConn ~ 3750 6300
-NoConn ~ 3750 6400
-NoConn ~ 3750 6500
-NoConn ~ 3750 6600
-NoConn ~ 3750 6700
-NoConn ~ 3750 6800
-NoConn ~ 1800 4400
-NoConn ~ 1800 4500
-NoConn ~ 1800 4600
-NoConn ~ 1800 4700
-NoConn ~ 1800 4800
-NoConn ~ 1800 4900
-NoConn ~ 1800 5000
-NoConn ~ 1800 5100
-NoConn ~ 1800 5200
-NoConn ~ 1800 5300
-NoConn ~ 1800 5400
-NoConn ~ 1800 5700
-NoConn ~ 1800 5800
-NoConn ~ 1800 5900
-NoConn ~ 1800 6000
-NoConn ~ 1800 6300
-NoConn ~ 1800 6700
-NoConn ~ 5500 4800
-NoConn ~ 5500 4900
-NoConn ~ 5500 5100
-NoConn ~ 5500 5500
-NoConn ~ 5500 5600
-NoConn ~ 5500 5700
-NoConn ~ 5500 5900
-NoConn ~ 5500 6200
-NoConn ~ 5500 6500
-NoConn ~ 6000 6500
-NoConn ~ 6000 6400
-NoConn ~ 6000 6300
-NoConn ~ 6000 6200
-NoConn ~ 6000 6100
-NoConn ~ 6000 6000
-NoConn ~ 6000 5900
-NoConn ~ 6000 5800
-NoConn ~ 6000 5700
-NoConn ~ 6000 5600
-NoConn ~ 6000 5500
-NoConn ~ 6000 5400
-NoConn ~ 6000 5300
-NoConn ~ 6000 5200
-NoConn ~ 6000 5100
-NoConn ~ 6000 4900
-NoConn ~ 6000 4800
+	2900 4600 2450 4600
+NoConn ~ 2900 4400
+NoConn ~ 2900 4800
+NoConn ~ 2900 4900
+NoConn ~ 2900 5200
+NoConn ~ 2900 5400
+NoConn ~ 2900 5600
+NoConn ~ 2900 5800
+NoConn ~ 2900 5900
+NoConn ~ 2900 6100
+NoConn ~ 2900 6200
+NoConn ~ 2900 6300
+NoConn ~ 2900 6400
+NoConn ~ 2900 6500
+NoConn ~ 2900 6600
+NoConn ~ 2900 6700
+NoConn ~ 1400 4300
+NoConn ~ 1400 4400
+NoConn ~ 1400 4500
+NoConn ~ 1400 4600
+NoConn ~ 1400 4700
+NoConn ~ 1400 4800
+NoConn ~ 1400 4900
+NoConn ~ 1400 5000
+NoConn ~ 1400 5100
+NoConn ~ 1400 5200
+NoConn ~ 1400 5300
+NoConn ~ 1400 5600
+NoConn ~ 1400 5700
+NoConn ~ 1400 5800
+NoConn ~ 1400 5900
+NoConn ~ 1400 6200
+NoConn ~ 1400 6600
+NoConn ~ 4300 4650
+NoConn ~ 4300 4750
+NoConn ~ 4300 4950
+NoConn ~ 4300 5450
+NoConn ~ 4300 5550
+NoConn ~ 4300 5750
+NoConn ~ 4300 6050
+NoConn ~ 4300 6350
+NoConn ~ 4800 6350
+NoConn ~ 4800 6250
+NoConn ~ 4800 6150
+NoConn ~ 4800 6050
+NoConn ~ 4800 5950
+NoConn ~ 4800 5850
+NoConn ~ 4800 5750
+NoConn ~ 4800 5650
+NoConn ~ 4800 5550
+NoConn ~ 4800 5450
+NoConn ~ 4800 5350
+NoConn ~ 4800 5250
+NoConn ~ 4800 5150
+NoConn ~ 4800 5050
+NoConn ~ 4800 4950
+NoConn ~ 4800 4750
+NoConn ~ 4800 4650
 Wire Wire Line
-	5500 6600 5350 6600
-Connection ~ 5350 6600
+	4300 6450 4100 6450
+Connection ~ 4100 6450
 Wire Wire Line
-	5350 6600 5350 6800
-Text Label 1400 6500 2    50   ~ 0
+	4100 6450 4100 6650
+Text Label 1000 6400 2    50   ~ 0
 TXCLK
-Text Label 1400 6100 2    50   ~ 0
+Text Label 1000 6000 2    50   ~ 0
 RXCLK
-Text Label 3300 4700 2    50   ~ 0
+Text Label 2450 4600 2    50   ~ 0
 CLKOUT
-Text Label 3300 5100 2    50   ~ 0
+Text Label 2450 5000 2    50   ~ 0
 CLKOUT
-Text Notes 1400 6200 0    50   ~ 0
+Text Notes 1000 6100 0    50   ~ 0
 RTS
-Text Notes 1600 5500 0    50   ~ 0
+Text Notes 1200 5400 0    50   ~ 0
 DTR
-Text Notes 5200 5400 0    50   ~ 0
+Text Notes 4150 5250 0    50   ~ 0
 DTR
-Text Notes 5400 5800 0    50   ~ 0
+Text Notes 4150 5650 0    50   ~ 0
 RTS
-Text Notes 3550 5800 0    50   ~ 0
+Text Notes 2700 5700 0    50   ~ 0
 CD
-Text Notes 3550 5400 0    50   ~ 0
+Text Notes 2700 5300 0    50   ~ 0
 DSR
-Text Notes 3550 5200 0    50   ~ 0
+Text Notes 2700 5100 0    50   ~ 0
 CTS
-Text Notes 3550 6100 0    50   ~ 0
+Text Notes 2700 6000 0    50   ~ 0
 RI
+$Comp
+L ddcmp_symbols:Berg_40_pin_DEC_labeling J?
+U 1 1 60C860E0
+P 6100 5450
+AR Path="/60A471E8/60C860E0" Ref="J?"  Part="1" 
+AR Path="/60A47002/60C860E0" Ref="J8"  Part="1" 
+F 0 "J8" H 6150 6567 50  0000 C CNN
+F 1 "To LU" H 6150 6476 50  0000 C CNN
+F 2 "ddcmp_parts:Berg_40_pin_DEC_pinout" H 6100 5450 50  0001 C CNN
+F 3 "https://cdn.amphenol-icc.com/media/wysiwyg/files/drawing/75869.pdf" H 6100 5450 50  0001 C CNN
+F 4 "609-1779-ND" H 100 -200 50  0001 C CNN "Digikey part"
+F 5 "Amphenol ICC" H 100 -200 50  0001 C CNN "Vendor"
+F 6 "75869-107LF" H 100 -200 50  0001 C CNN "Vendor part"
+	1    6100 5450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5900 4550 5700 4550
+Wire Wire Line
+	5700 4550 5700 6450
+$Comp
+L power:GND #PWR?
+U 1 1 60C860E8
+P 5700 6650
+AR Path="/60A471E8/60C860E8" Ref="#PWR?"  Part="1" 
+AR Path="/60A47002/60C860E8" Ref="#PWR011"  Part="1" 
+F 0 "#PWR011" H 5700 6400 50  0001 C CNN
+F 1 "GND" H 5705 6477 50  0000 C CNN
+F 2 "" H 5700 6650 50  0001 C CNN
+F 3 "" H 5700 6650 50  0001 C CNN
+	1    5700 6650
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 60C860EE
+P 6550 6600
+AR Path="/60A471E8/60C860EE" Ref="#PWR?"  Part="1" 
+AR Path="/60A47002/60C860EE" Ref="#PWR012"  Part="1" 
+F 0 "#PWR012" H 6550 6350 50  0001 C CNN
+F 1 "GND" H 6555 6427 50  0000 C CNN
+F 2 "" H 6550 6600 50  0001 C CNN
+F 3 "" H 6550 6600 50  0001 C CNN
+	1    6550 6600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6550 6600 6550 6450
+Wire Wire Line
+	6550 6450 6400 6450
+Wire Wire Line
+	6550 6450 6550 4550
+Wire Wire Line
+	6550 4550 6400 4550
+Connection ~ 6550 6450
+Text Label 5550 5750 2    50   ~ 0
+RS232_1
+Wire Wire Line
+	5900 6150 5550 6150
+Wire Wire Line
+	5900 5850 5550 5850
+Text Label 5550 6150 2    50   ~ 0
+TXD
+Text Label 5550 5850 2    50   ~ 0
+CLKOUT
+Wire Wire Line
+	5900 5950 5550 5950
+Text Label 5550 5950 2    50   ~ 0
+CLKOUT
+Wire Wire Line
+	5900 6250 5550 6250
+Text Label 5550 6250 2    50   ~ 0
+RXD
+Wire Wire Line
+	5900 5150 5550 5150
+Wire Wire Line
+	5900 5050 5550 5050
+Wire Wire Line
+	5900 4850 5550 4850
+Wire Wire Line
+	6400 4850 6700 4850
+Text HLabel 6800 4150 2    50   Output ~ 0
+IM_TXD_N
+Text HLabel 5550 4850 0    50   Output ~ 0
+IM_TXD
+Text HLabel 5550 5050 0    50   Input ~ 0
+IM_RXD
+Text HLabel 5550 5150 0    50   Input ~ 0
+IM_RXD_N
+NoConn ~ 5900 4650
+NoConn ~ 5900 4750
+NoConn ~ 5900 4950
+NoConn ~ 5900 6050
+NoConn ~ 5900 6350
+NoConn ~ 6400 6350
+NoConn ~ 6400 6250
+NoConn ~ 6400 6150
+NoConn ~ 6400 6050
+NoConn ~ 6400 5950
+NoConn ~ 6400 5850
+NoConn ~ 6400 5750
+NoConn ~ 6400 5650
+NoConn ~ 6400 5550
+NoConn ~ 6400 5450
+NoConn ~ 6400 5350
+NoConn ~ 6400 5250
+NoConn ~ 6400 5150
+NoConn ~ 6400 5050
+NoConn ~ 6400 4950
+NoConn ~ 6400 4750
+NoConn ~ 6400 4650
+Wire Wire Line
+	5900 6450 5700 6450
+Connection ~ 5700 6450
+Wire Wire Line
+	5700 6450 5700 6650
+Wire Wire Line
+	5100 4850 5100 4300
+Wire Wire Line
+	6700 4850 6700 4150
+NoConn ~ 5900 5250
+NoConn ~ 5900 5650
+Wire Wire Line
+	6800 4150 6700 4150
+Wire Wire Line
+	5200 4300 5100 4300
+Wire Wire Line
+	5550 5750 5600 5750
+Wire Wire Line
+	5900 5450 5600 5450
+Wire Wire Line
+	5600 5450 5600 5750
+Connection ~ 5600 5750
+Wire Wire Line
+	5600 5750 5900 5750
+Text Notes 5750 5450 0    50   ~ 0
+DSR
+Text Notes 5750 5750 0    50   ~ 0
+CTS
+Wire Wire Line
+	5900 5550 5550 5550
+Text Label 5550 5550 2    50   ~ 0
+RS232_0
+Text Notes 5750 5550 0    50   ~ 0
+RI
+Text Notes 5750 5350 0    50   ~ 0
+CD
+Wire Wire Line
+	4000 5250 4000 5650
+NoConn ~ 4300 5350
+Wire Wire Line
+	5900 5350 5600 5350
+Wire Wire Line
+	5600 5350 5600 5450
+Connection ~ 5600 5450
 $EndSCHEMATC

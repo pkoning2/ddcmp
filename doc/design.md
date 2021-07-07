@@ -64,7 +64,21 @@ Once the complete frame has been built, the buffer is marked as filled.  If DMA 
 
 For RS-232 mode, the output bit stream is simply the sequence of bits (LSB first) from the transmitted packet.  The transmit handler for these modes picks up words from the output FIFO and shifts them a bit at a time to the transmit data pin.  For DTE mode, the shifting happens on the rising edge of the transmit clock input.  For DCE mode, the state machine runs at 4x the required data rate and it shifts output bits and generates the clock signal in a four-instruction loop.
 
-For integral modem mode, the output signal is an FM modulated signal representing the bit stream, with an edge at the beginning of each bit cell and a second edge in the middle if the transmitted bit is a zero.  The PIO state machine program for this mode fetches 32-bit words from the FIFO, then shifts out one bit at a time and generates the correct waveform based on whether the bit is one or zero.  It runs at 4x the required data rate.  Note that for the integral modem case there is no connection between receive and transmit clocks, though the nominal values are expected to match.
+For integral modem mode, the output signal is an FM modulated signal representing the bit stream, with an edge at the beginning of each bit cell and a second edge in the middle if the transmitted bit is a zero.  The PIO state machine program for this mode fetches 32-bit words from the FIFO, then shifts out one bit at a time and generates the correct waveform based on whether the bit is one or zero.  It runs at 4x the required data rate.  Note that for the integral modem case there is no connection between receive and transmit clocks, though the nominal values are expected to match.  The data rates can be set to different values, but this is only intended as a test tool to verify that the receive demodulation can handle bit clocks that are moderately (up to 10% is the DEC specification) out of tolerance.
+
+# Modem control
+
+The framer is designed for full duplex operation with very limited modem control.
+
+In RS-232 using the DTE connection, DTR and RTS are set when the framer is turned on.  Modem control signals from the modem (DSR, CTS, RI, CD) are ignored.
+
+In RS-232 using the DCE connection, DSR, CTS, and CD are set when the framer is turned on, and RI is off.  Modem control signals from the device (DTR, RTS) are ignored.
+
+In integral modem mode, transmit carrier is sent as soon as the framer is turned on.  The line unit startup sequence is sent (see section 4.3.11.3 of the DMC-11 line unit maintenance manual), followed by the idle line state (SYN bytes) until the host starts sending DDCMP frames.
+
+The RS-232 hardware does not support half-duplex or full modem control operation, mostly because the transceivers used don't have enough drivers and receivers to handle all the modem control pins explicitly.
+
+The integral modem hardware has the transmit driver enable under firmware control, which means that it is probably possible to implement half duplex or multipoint operation, where the carrier has to be turned off when the station is not actively transmitting.  There is no support for this in the firmware, though.
 
 # Host interface handling
 
@@ -112,7 +126,7 @@ There are two ways to invoke BIST:
 
 ## Power up BIST
 
-If GPIO pin 2 is grounded at framer power up (for example, by installing a jumper on 2-pin header TEST), this forces BIST, integral modem, internal loopback.  The USB interface is still active.
+If GPIO pin 2 is grounded at framer power up (for example, by installing a jumper on 2-pin header J4, labeled "TEST"), this forces BIST, integral modem, internal loopback, 1 Mbps.  The USB interface is still active in this mode so the host can monitor BIST progress from the periodic status frames, and can stop the test by sending an Off command.
 
 ## BIST mode in Framer On commands
 

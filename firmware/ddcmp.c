@@ -9,7 +9,7 @@
 // Please read file LICENSE for the license that applies to this project.
 //
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define __packed 
 #define __aligned(x)
@@ -25,6 +25,7 @@
 #include <hardware/irq.h>
 #include <hardware/dma.h>
 #include <pico/multicore.h>
+#include <hardware/pll.h>
 #include <hardware/clocks.h>
 
 #define VERSION "DDCMP Framer V1.0"
@@ -105,7 +106,10 @@ bool bist = false;
 // These pins are not connected to anything on the PC board, but they
 // are enabled (both input and output circuits) so they have to be
 // reserved for the purpose and configured as needed just like other
-// pins.
+// pins.  IMSTROBE is an engineering test signal; the integral modem
+// demodulator state machine generates a rising edge at the point
+// where it samples the incoming waveform (nominally in the middle of
+// the second half of the bit cell).
 #define RXRECDATA 8     // Integral modem recovered receive bit stream
 #define IMSTROBE  9     // Integral modem receive strobe (RXRECDATA + 1)
 #define LCPIN    6      // Loopback clock pin
@@ -227,7 +231,7 @@ volatile dma_channel_hw_t *txcsr;
 static const uint8_t default_hdr[BUF_OFF] = {
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x06,         // Dest:   aa-00-03-04-05-06
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x07,         // Source: aa-00-03-04-05-07
-    0x60, 0x06,                                 // Prot: 60-06 (customer)
+    0x60, 0x06,                                 // Prot:   60-06 (customer)
     BUF_EMPTY, 0x00                             // Status
 };
 
@@ -364,6 +368,23 @@ static inline void buf_done (enum ddcmp_status stat)
     rbuf_ring[rbuf_fill].stat = stat;
     rbuf_fill = (rbuf_fill + 1) % RBUFS;
     rxblink ();
+}
+
+// For some reason these aren't standard functions.
+static void gpio_set_drive (int gpio, int strength)
+{
+    // Set drive strength bits
+    hw_write_masked(&padsbank0_hw->io[gpio],
+                    strength << PADS_BANK0_GPIO0_DRIVE_LSB,
+                    PADS_BANK0_GPIO0_DRIVE_BITS);
+}
+
+static void gpio_set_slew (int gpio, int fast)
+{
+    // Set slew rate bit
+    hw_write_masked(&padsbank0_hw->io[gpio],
+                    fast << PADS_BANK0_GPIO0_SLEWFAST_LSB,
+                    PADS_BANK0_GPIO0_SLEWFAST_BITS);
 }
 
 // Packet receive loop.  This runs in CPU 1, pulling received data
@@ -546,10 +567,10 @@ void ddcmp_cpu1 (void)
 }
 
 // Set pio_sm_config clkdiv parameters given desired clock frequency.
-// More precisely, we set the dividers to the nearest multiple of
-// 0.25.  That avoids jitter on the state machine period, since the
-// state machines all run at multiples of 4 times the nominal data
-// rate.
+// More precisely, we set the dividers to the nearest integer, to
+// avoid the clock jitter associated with the use of fractional
+// dividers.  For all the standard rates the error resulting from this
+// is either 0 or quite small enough (less than 0.1%).
 //
 // Lifted, with some mods, from rp2_pio.c in micropython.
 void sm_config_set_clkdiv_freq (pio_sm_config *c, int freq)
@@ -558,14 +579,18 @@ void sm_config_set_clkdiv_freq (pio_sm_config *c, int freq)
     uint i, f;
     uint64_t q;
 
-    q = (clock_get_hz (clk_sys) * 8) / freq;
-    q = (q + 1) / 2;
+    q = ((uint64_t) clock_get_hz (clk_sys) * 256) / freq;
     
-    i = q / 4;
-    f = (q & 3) * 64;
+    i = q / 256;
+    f = q & 0xff;
 
-    sm_config_set_clkdiv_int_frac (c, i, f);
-    DPRINTF ("Clock freq %d div %d frac %d\n", freq, i, f);
+    // Round up
+    if (f >= 128)
+    {
+        i++;
+    }
+    sm_config_set_clkdiv_int_frac (c, i, 0);
+    DPRINTF ("Clock freq %d div %d\n", freq, i);
 }
 
 // PIO state machine setup handlers.  Each of these get the "default"
@@ -926,16 +951,6 @@ static void start_cpu1 (void)
     multicore_launch_core1 (ddcmp_cpu1);
 }
 
-// For some reason this isn't a standard function.
-static void gpio_set_drive (int gpio, int strength)
-{
-    // Set drive strength bits
-    hw_write_masked(&padsbank0_hw->io[gpio],
-                    strength << PADS_BANK0_GPIO0_DRIVE_LSB,
-                    PADS_BANK0_GPIO0_DRIVE_BITS);
-}
-
-
 // Stop the DDCMP framer
 static void stop_ddcmp (void)
 {
@@ -983,12 +998,15 @@ static void stop_ddcmp (void)
     }
     // Set direction for output pins.  Note that gpio_init supplies an
     // output value of zero as part of its initialization.  Also turn
-    // off the pulldown since we're now driving the pin.
+    // off the pulldown since we're now driving the pin.  Set the
+    // default drive strength to 2 mA (minimum) and fast slew rate.
     for (i = 0; i < sizeof (opins); i++)
     {
         pin = opins[i];
         gpio_set_dir (pin, true);
         gpio_disable_pulls (pin);
+        gpio_set_drive (pin, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA);
+        gpio_set_slew (pin, 1);
     }
     // Set LED output drive strength to 12 mA
     gpio_set_drive (SYNLED, PADS_BANK0_GPIO0_DRIVE_VALUE_12MA);
@@ -1593,10 +1611,48 @@ static void init_once (void)
 
 int main ()
 {
+    // Start by changing the system clock to 120 MHz, which is an
+    // integral multiple of the fast line speeds we want to support.
+    // That way we can support the exact nominal values rather than
+    // having to choose between jitter (due to fractional dividers) or
+    // rates that are not actually what was asked for.
+    // Various code snippets here were lifted from the Pico SDK.
+
+    // 1. Set the sys clock to use the ref clock
+    // CLK SYS = CLK_REF.
+    uint clk_ref_freq = clock_get_hz (clk_ref);
+    clock_configure (clk_sys,
+                     CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLK_REF,
+                     0,
+                     clk_ref_freq,
+                     clk_ref_freq);
+
+    // 2. Set the sys PLL to 120 MHz.  This waits for PLL lock.
+    pll_init (pll_sys, 1, 1440 * MHZ, 6, 2);
+
+    // 3. Set sys clock back to use the PLL
+    // CLK SYS = PLL SYS (120 MHz) / 1 = 120 MHz
+    clock_configure (clk_sys,
+                     CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
+                     CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
+                     120 * MHZ,
+                     120 * MHZ);
+
+    // 4. Peri clock uses sys clock.  Just call clock_configure to set
+    // it up, though it's normally already set that way and all that's
+    // changing is the declared frequency.
+    clock_configure (clk_peri,
+                     0,
+                     CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                     120 * MHZ,
+                     120 * MHZ);
+    
 #if DEBUG
+    // Initialize stdio and the UART.  Note this has to be done after
+    // the manipulation of the system clock speeds.
     stdio_init_all ();
 #endif
-    DPRINTF ("Initializing DDCMP framer\n");
+    DPRINTF ("\n\nInitializing DDCMP framer\n");
     DPRINTF (VERSION "\n");
     DPRINTF ("Max packet length: %d\n", MAXLEN);
     
@@ -1606,6 +1662,7 @@ int main ()
     if (gpio_get (LOOPTEST) == 0)
     {
         DPRINTF ("Selftest requested\n");
+        DPRINTF ("Starting integral modem BIST, internal loopback, 1 Mbps\n");
         // We use the integral modem (since that's the most complex
         // case) at max standard speed (1 Mb/s).
         start_ddcmp (BIST | INT_LOOPBACK | INT_MODEM, 1000000, 1000000);
