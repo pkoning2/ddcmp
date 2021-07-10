@@ -33,6 +33,7 @@
    out_base is the transmit data pin
    out_count is 1
    state machine clock: fast (minimally 8x the bit rate).
+   output fifo threshold is 8 or 32, joined output fifos
 
    Initialization:
    Before starting this state machine, use the execute register to
@@ -110,7 +111,7 @@ search:	wait	1 pin 1 side 0	  // indicate not in sync
    sideset_base is the clock output pin
    sideset_count is 1 (with optional side set)
    state machine clock: 4x the required bit rate.
-   output fifo threshold is 32, joined output fifos
+   output fifo threshold is 8 or 32, joined output fifos
 
    Initialization:
    Before starting this state machine, use the execute register to
@@ -135,7 +136,7 @@ search:	wait	1 pin 1 side 0	  // indicate not in sync
    out_base is the transmit data pin.  side_set also assigned this.
    out_count is 1
    state machine clock: 4x the required bit rate.
-   output fifo threshold is 32, joined output fifos
+   output fifo threshold is 8 or 32, joined output fifos
 
    Initialization:
    Before starting this state machine, use the execute register to

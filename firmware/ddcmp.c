@@ -7,9 +7,16 @@
 // Copyright (c) 2021, Paul Koning
 //
 // Please read file LICENSE for the license that applies to this project.
-//
 
+
+// Define this as 1 to send debug output to the debug UART, 0 to turn
+// off UART use.
 #define DEBUG 1
+
+// Define this to 1 (default) for 8 bit transmit FIFO, 0 for 32 bit
+// transmit FIFO.  For standard speeds, 8 bit FIFO is more than
+// adequate.
+#define TX8 1
 
 #define __packed 
 #define __aligned(x)
@@ -151,6 +158,11 @@ const uint8_t opins[] = {
 #define RDATA (MAXLEN + 8 + 2) // Frame space in rings
 #define BUF_OFF 16      // Buffer offset to start of DDCMP frame
 #define SYN_CNT 8       // Count of SYN bytes before tx frame start
+#if TX8
+#define SYN_CNT_V3 10   // Ditto, but in DMC11-AL V3 compatibility mode
+#else
+#define SYN_CNT_V3 12   // Ditto, but in DMC11-AL V3 compatibility mode
+#endif
 #define RBUFS 8         // Number of buffers in receive ring
 #define TBUFS 8         // Number of buffers in transmit ring
 
@@ -162,6 +174,7 @@ const uint8_t opins[] = {
 #define INT_LOOPBACK    4
 #define BIST            8
 #define SPLIT           16
+#define DDCMP3          32  // DDCMP V3.03 (DMC-11) compatibility
 
 // DDCMP framing state machine state codes
 enum ddcmp_state
@@ -201,7 +214,8 @@ volatile int rbuf_fill = 0;
 struct ddcmp_txframe
 {
     uint32_t data_len;      // Total length (including SYN and DEL)
-    uint8_t syn[SYN_CNT];   // SYN bytes before frame start
+    uint8_t *data_start;    // Starting address (syn or syn + 2 or 4)
+    uint8_t syn[SYN_CNT_V3]; // SYN bytes before frame start
     uint8_t data[RDATA];    // DDCMP frame data (header + payload)
     uint8_t del;            // DEL after the CRC
 };
@@ -216,6 +230,13 @@ volatile int tbuf_count = 0;
 // transmit, checked in the main loop to re-request the transmit
 // buffer from USB if the count now permits transmitting more.
 volatile bool tx_full = false;
+
+// Set to true if we're in DMC11 mode using integral modem, i.e.,
+// talking to a DMC11-AL.
+bool dmc_syn_al = false;
+
+// Set to true if we're in DMC11 mode, any link type.
+bool dmc = false;
 
 // DMA channel number
 int txdma;
@@ -605,8 +626,12 @@ static pio_sm_config modem_clk_xmit_config (uint offset)
     
     // Fast clock
     sm_config_set_clkdiv_int_frac (&c, 1, 0);
-    // FIFO: threshold 32, shift right, no autopull, joined
+    // FIFO: threshold 8 (or 32), shift right, no autopull, joined
+#if TX8
+    sm_config_set_out_shift (&c, true, false, 8);
+#else
     sm_config_set_out_shift (&c, true, false, 32);
+#endif
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // input: tx clock input pin
     sm_config_set_in_pins (&c, TXCLKIN);
@@ -646,8 +671,12 @@ static pio_sm_config local_clk_xmit_config (uint offset, uint speed,
 
     // clock from bit rate
     sm_config_set_clkdiv_freq (&c, speed * 4);
-    // FIFO: threshold 32, shift right, no autopull, joined
+    // FIFO: threshold 8 (or 32), shift right, no autopull, joined
+#if TX8
+    sm_config_set_out_shift (&c, true, false, 8);
+#else
     sm_config_set_out_shift (&c, true, false, 32);
+#endif
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // output: tx data
     sm_config_set_out_pins (&c, txpin, 1);
@@ -665,8 +694,12 @@ static pio_sm_config inmodem_xmit_config (uint offset, uint speed, int txpin)
     
     // clock from bit rate
     sm_config_set_clkdiv_freq (&c, speed * 4);
-    // FIFO: threshold 32, shift right, no autopull, joined
+    // FIFO: threshold 8 (or 32), shift right, no autopull, joined
+#if TX8
+    sm_config_set_out_shift (&c, true, false, 8);
+#else
     sm_config_set_out_shift (&c, true, false, 32);
+#endif
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
     // output: integral modem tx data
     // side set: ditto
@@ -963,6 +996,7 @@ static void stop_ddcmp (void)
     // use, it's only used for the integral modem case, but stopping
     // it can't hurt.
     rx_enabled = false;
+    dmc_syn_al = dmc = false;
     bist = false;
     pio_sm_set_enabled (RXPIO, RXSM, false);
     pio_sm_set_enabled (TXPIO, TXSM, false);
@@ -1068,10 +1102,15 @@ static void start_ddcmp (uint mflags, uint speed, uint txspeed)
 
     DPRINTF ("Configuring DMA\n");
     // Build the DMA config settings (DMA CTRL register value) for the
-    // transmit buffer DMA: 32 bit transfers, no write increment, data
-    // request is transmit state machine output FIFO.
+    // transmit buffer DMA: 8 bit transfers, no write increment, data
+    // request is transmit state machine output FIFO.  (Conditional
+    // compile: 32 bit transfers.)
     dma_channel_config tx = dma_channel_get_default_config (txdma);
+#if TX8
+    channel_config_set_transfer_data_size (&tx, DMA_SIZE_8);
+#else
     channel_config_set_transfer_data_size (&tx, DMA_SIZE_32);
+#endif
     channel_config_set_dreq (&tx, pio_get_dreq (TXPIO, TXSM, true));
 
     // Load the two fixed DMA values: control register, write address
@@ -1088,6 +1127,18 @@ static void start_ddcmp (uint mflags, uint speed, uint txspeed)
     tbuf_count = 0;
     tx_full = false;
     rx_enabled = true;
+    if (mflags & DDCMP3)
+    {
+        if (mflags & INT_MODEM)
+        {
+            dmc_syn_al = true;
+        }
+        dmc = true;
+    }
+    else
+    {
+        dmc_syn_al = dmc = false;
+    }
     status_msg.on = ON_ACT;
     status_msg.mflags = mflags;
     status_msg.speed = speed;
@@ -1177,8 +1228,11 @@ static void start_txdma (void *data, int plen)
     struct ddcmp_txframe *df = &tbuf_ring[tbuf_fill];
 
     // Set word count
+#if !TX8
     plen >>= 2;
+#endif
     df->data_len = plen;
+    df->data_start = data;
     // Mask the DMA done interrupt, then increment the pending count
     // and start DMA if not currently running.
     hw_clear_bits (&dma_hw->inte0, txdmask);
@@ -1232,12 +1286,14 @@ static void command (const void *_cmd, uint16_t size)
         break;
     case REQ_RAWTX:
         plen = size - 2;
+#if !TX8
         if (plen & 3)
         {
             DPRINTF ("Raw transmit not word aligned, %d\n", plen);
             status_msg.last_cmd_sts = CMD_BAD_MSG;
             return;
         }
+#endif
         if (plen > RDATA)
         {
             DPRINTF ("Raw transmit too long, %d\n", plen);
@@ -1297,7 +1353,7 @@ void dma_done (void)
         // Still non-zero, start up another DMA
         DDPRINTF ("irq: starting another DMA for %d\n", te);
         df = &tbuf_ring[te];
-        txcsr->al1_read_addr = (uint32_t) (df->syn);
+        txcsr->al1_read_addr = (uint32_t) (df->data_start);
         assert ((txcsr->al1_ctrl & (1<<24)) == 0);
         txcsr->al1_transfer_count_trig = df->data_len;
     }
@@ -1307,7 +1363,7 @@ void dma_done (void)
     }
 }
 
-static bool transmit (const uint8_t *pkt, uint16_t size)
+static bool transmit (uint8_t *pkt, uint16_t size)
 {
     struct ddcmp_txframe *df = &tbuf_ring[tbuf_fill];
     int plen;
@@ -1341,9 +1397,24 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
     {
         // control frame
         plen = 8;
+        if (dmc)
+        {
+            // In DDCMP V3 compatibility mode, force QSYN and SEL to
+            // one.
+            pkt[2] |= 0xc0;
+        }
     }
     else
     {
+        if (dmc)
+        {
+            // In DDCMP V3 compatibility mode, force QSYN and SEL to
+            // zero.  Note this is critical; it appears that the DMC11
+            // will mess up its memory address register if this rule
+            // is violated.  See the DMC11 Microprocessor manual,
+            // appendix I.
+            pkt[2] &= 0x3f;
+        }
         plen = pkt[1] | ((pkt[2] & 0x3f) << 8);
         if (plen == 0 || plen > MAXLEN || plen + 6 > size)
         {
@@ -1365,14 +1436,32 @@ static bool transmit (const uint8_t *pkt, uint16_t size)
 
     // Set trailing DEL, plus SYN to pad to 4 byte multiple
     df->data[plen++] = DEL;
+#if !TX8
     df->data[plen++] = SYN;
     df->data[plen++] = SYN;
     df->data[plen++] = SYN;
     plen &= ~3;
+#endif
     
-    // Add leading SYN count, then start the DMA
-    start_txdma (df->syn, plen + SYN_CNT);
-    
+    // Add leading SYN count, then start the DMA.  Note that we do not
+    // have support for sending abutting messages (DDCMP V4).  It
+    // would be nice to do so, although the performance benefit is
+    // probably not all that large, but the rules for doing it are
+    // amazingly complex -- see section 5.1.3.2 in the DDCMP V4.0
+    // specification.  And while the rules for when a "short sync
+    // sequence" can be sent (section 5.1.3.3) are not quite as bad,
+    // they likewise don't seem to be worth the effort.  In other
+    // words, we always send a "long sequence" (8 SYN bytes, except on
+    // DMC11 integral modem case where we use 10).
+    if (dmc_syn_al)
+    {
+        // DDCMP V3 on DMC11-AL compatibility
+        start_txdma (df->syn, plen + SYN_CNT_V3);
+    }
+    else
+    {
+        start_txdma (df->syn + (SYN_CNT_V3 - SYN_CNT), plen + SYN_CNT);
+    }
     return true;
 }
 
@@ -1404,7 +1493,7 @@ static bool handle_frame (const uint8_t *src, uint16_t size)
         {
             return true;
         }
-        return transmit (src + 14, plen);
+        return transmit ((uint8_t *) (src + 14), plen);
     }
     DPRINTF ("Unknown frame code %03o\n", src[14]);
     
@@ -1528,8 +1617,10 @@ void rndis_class_set_handler(uint8_t *data, int size)
 // of the sequence number are also inserted into the header (in bytes
 // normally zero in maintenance messages) so we have the sequence
 // number available when reporting packets received with header CRC
-// error.
-#define BIST_LEN 500
+// error.  The data length is a multiple of 4 plus 1, so that with CRC
+// and DEL byte appended we're at a multiple of 4, ensuring no SYN
+// padding at the end even if 32 bit transmit FIFO is used.
+#define BIST_LEN 501
 uint8_t bist_data[6 + BIST_LEN] = {
     DLE, BIST_LEN & 0xff, BIST_LEN >> 8
 };
@@ -1580,7 +1671,7 @@ static void init_once (void)
     for (i = 0; i < TBUFS; i++)
     {
         // Set up the sync bytes
-        for (j = 0; j < SYN_CNT; j++)
+        for (j = 0; j < sizeof (tbuf_ring[0].syn); j++)
         {
             tbuf_ring[i].syn[j] = SYN;
         }
