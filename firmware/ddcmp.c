@@ -11,7 +11,7 @@
 
 // Define this as 1 to send debug output to the debug UART, 0 to turn
 // off UART use.
-#define DEBUG 1
+#define DEBUG 0
 
 // Define this to 1 (default) for 8 bit transmit FIFO, 0 for 32 bit
 // transmit FIFO.  For standard speeds, 8 bit FIFO is more than
