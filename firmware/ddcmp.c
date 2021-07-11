@@ -37,6 +37,8 @@
 
 #define VERSION "DDCMP Framer V1.0"
 
+#define MB asm volatile ("" : : : "memory")
+
 #if DEBUG
 // Debugging, if enabled, uses the UART at the default pins (pin 1 and
 // 2, GPIO 0 and GPIO 1).
@@ -201,7 +203,7 @@ struct ddcmp_rxframe
 {
     int data_len;
     uint8_t bufhdr[BUF_OFF - 2]; // room for "Ethernet" header
-    uint16_t stat;          // Status (ddcmp_status code)
+    volatile uint16_t stat; // Status (ddcmp_status code)
     uint8_t data[RDATA];    // DDCMP frame data (header + payload)
 };
 
@@ -386,6 +388,7 @@ static inline void txblink (void)
 static inline void buf_done (enum ddcmp_status stat)
 {
     DDPRINTF ("buffer %d (%d) done, status %d\n", rbuf_fill, rbuf_empty, stat);
+    MB;
     rbuf_ring[rbuf_fill].stat = stat;
     rbuf_fill = (rbuf_fill + 1) % RBUFS;
     rxblink ();
@@ -535,6 +538,9 @@ void ddcmp_cpu1 (void)
                         // Good CRC
                         if (ctrl || ds == PAYLOAD)
                         {
+                            // Good frame, count it
+                            status_msg.rxframes++;
+                            status_msg.rxbytes += frame->data_len;
                             buf_done (DDCMP_OK);
                             // Skip possible trailing DEL, then look
                             // for next frame
@@ -553,6 +559,7 @@ void ddcmp_cpu1 (void)
                                 // (zero length field) along with too
                                 // long.
                                 buf_done (DDCMP_LONG);
+                                status_msg.len_err++;
                                 syn_search ();
                                 ds = FLUSH;
                                 break;
@@ -565,11 +572,13 @@ void ddcmp_cpu1 (void)
                         // Bad CRC, report it and resync if header CRC
                         if (ds == PAYLOAD)
                         {
+                            status_msg.crc_err++;
                             buf_done (DDCMP_CRC);
                             ds = DEL1;
                         }
                         else
                         {
+                            status_msg.hcrc_err++;
                             buf_done (DDCMP_HCRC);
                             syn_search ();
                             ds = FLUSH;
@@ -1204,29 +1213,11 @@ void handle_rbuf (void)
             DDPRINTF ("received frame %d, status %d, len %d, seq %d\n",
                       rbuf_empty, df->stat, df->data_len,
                       df->data[3] + (df->data[4] << 8));
-            status_msg.rxframes++;
-            status_msg.rxbytes += df->data_len;
             df->stat = BUF_EMPTY;
             rbuf_empty = (rbuf_empty + 1) % RBUFS;
         }
         else
         {
-            // Maintain the counters here to avoid cache coherence
-            // issues.
-            switch (df->stat)
-            {
-            case DDCMP_HCRC:
-                status_msg.hcrc_err++;
-                break;
-            case DDCMP_CRC:
-                status_msg.crc_err++;
-                break;
-            case DDCMP_LONG:
-                status_msg.len_err++;;
-                break;
-            default:
-                ;
-            }
             if (tud_network_can_xmit ())
             {
                 DDPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
@@ -1455,7 +1446,8 @@ static bool transmit (uint8_t *pkt, uint16_t size)
     df->data[plen++] = SYN;
     plen &= ~3;
 #endif
-    
+    MB;
+
     // Add leading SYN count, then start the DMA.  Note that we do not
     // have support for sending abutting messages (DDCMP V4).  It
     // would be nice to do so, although the performance benefit is
@@ -1581,8 +1573,6 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
     else if (df->stat != BUF_EMPTY)
     {
         len = df->data_len + BUF_OFF;
-        status_msg.rxframes++;
-        status_msg.rxbytes += df->data_len;
         DDPRINTF ("Sending to host received frame %d status %d len %d\n",
                   rbuf_empty, df->stat, df->data_len);
         dumpbuf (df->bufhdr, len);
