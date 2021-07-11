@@ -553,7 +553,6 @@ void ddcmp_cpu1 (void)
                                 // (zero length field) along with too
                                 // long.
                                 buf_done (DDCMP_LONG);
-                                status_msg.len_err++;
                                 syn_search ();
                                 ds = FLUSH;
                                 break;
@@ -566,13 +565,11 @@ void ddcmp_cpu1 (void)
                         // Bad CRC, report it and resync if header CRC
                         if (ds == PAYLOAD)
                         {
-                            status_msg.crc_err++;
                             buf_done (DDCMP_CRC);
                             ds = DEL1;
                         }
                         else
                         {
-                            status_msg.hcrc_err++;
                             buf_done (DDCMP_HCRC);
                             syn_search ();
                             ds = FLUSH;
@@ -1214,6 +1211,22 @@ void handle_rbuf (void)
         }
         else
         {
+            // Maintain the counters here to avoid cache coherence
+            // issues.
+            switch (df->stat)
+            {
+            case DDCMP_HCRC:
+                status_msg.hcrc_err++;
+                break;
+            case DDCMP_CRC:
+                status_msg.crc_err++;
+                break;
+            case DDCMP_LONG:
+                status_msg.len_err++;;
+                break;
+            default:
+                ;
+            }
             if (tud_network_can_xmit ())
             {
                 DDPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
