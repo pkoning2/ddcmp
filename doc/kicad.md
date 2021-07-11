@@ -90,11 +90,11 @@ If you have trouble getting this part, several other Mini-Circuits transformers 
 
 #### Tested alternatives
 
-1. Mini-Circuits ADT1-6T+ (Digikey 3157-ADT1-6T+CT-ND).  That one works fine at 1 Mbps but its low frequency limit makes it marginal at best at 56 kbps.
+1. Mini-Circuits ADT1-6T+ (Digikey 3157-ADT1-6T+CT-ND).  This one has a specified lower limit of 30 kHz, which means 56kbps is slightly out of spec.  Loopback test over around 70 feet of small size coax with a number of connectors to it shows no errors, but the eye pattern is just barely open enough for that to be true.  Higher speeds work fine and have excellent eye patterns.  If you intend to use short cables, or high speeds (250 kbps or above), this option is fine.
 
 #### Untested alternatives
 
-1. Mini-Circuits ADTT1-6+ (Digikey 3157-ADTT1-6+CT-ND) appears to be suitable judging by its specifications.
+1. Mini-Circuits ADTT1-6+ (Digikey 3157-ADTT1-6+CT-ND) appears to be suitable judging by its specifications.  Its low frequency limit is 15 kHz which indicates it should have more margin than the ADT1-6T+ at 56 kbps.
 
 2. Mini-Circuits ADT2-71T+ (Digikey 3157-ADT2-71T+CT-ND) may work.  This is a 1:2 impedance transformer.  The MAX3491 transceiver is designed for either 50 ohm or 100 ohm load so this should be fine, but the output voltage at the 50 ohm connector will be somewhat reduced.  So long as the cables are not too long I would not expect a problem.  If this option is used, replace R6 and R7 by 100 ohm resistors.  Also, with this part the correct orientation is important -- the dot on the case needs to go where it is marked on the board.
 
