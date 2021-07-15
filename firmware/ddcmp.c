@@ -29,7 +29,8 @@
 #include "ddcmp.pio.h"
 #include <hardware/pio_instructions.h>
 #include <hardware/timer.h>
-#include <hardware/irq.h>
+#include "hardware/structs/sio.h"
+#include "hardware/regs/sio.h"
 #include <hardware/dma.h>
 #include <pico/multicore.h>
 #include <hardware/pll.h>
@@ -165,6 +166,12 @@ const uint8_t opins[] = {
 #else
 #define SYN_CNT_V3 12   // Ditto, but in DMC11-AL V3 compatibility mode
 #endif
+
+// Buffer counts.  The receive buffer count can be increased if
+// desired, though there does not seem to be a good reason for doing
+// so.  The transmit buffer count must NOT be increased (8 is the max)
+// because there needs to be an available entry in the CPU0 -> CPU1
+// FIFO for each transmit buffer.
 #define RBUFS 8         // Number of buffers in receive ring
 #define TBUFS 8         // Number of buffers in transmit ring
 
@@ -215,7 +222,7 @@ volatile int rbuf_fill = 0;
 // DDCMP frame buffer layout (host to framer, transmit ring entry)
 struct ddcmp_txframe
 {
-    uint32_t data_len;      // Total length (including SYN and DEL)
+    volatile uint32_t data_len; // Total length (including SYN and DEL)
     uint8_t *data_start;    // Starting address (syn or syn + 2 or 4)
     uint8_t syn[SYN_CNT_V3]; // SYN bytes before frame start
     uint8_t data[RDATA];    // DDCMP frame data (header + payload)
@@ -226,7 +233,6 @@ struct ddcmp_txframe
 struct ddcmp_txframe tbuf_ring[TBUFS];
 volatile int tbuf_empty = 0;
 volatile int tbuf_fill = 0;
-volatile int tbuf_count = 0;
 
 // Set to true in the transmit handler if it has no room for another
 // transmit, checked in the main loop to re-request the transmit
@@ -411,10 +417,58 @@ static void gpio_set_slew (int gpio, int fast)
                     PADS_BANK0_GPIO0_SLEWFAST_BITS);
 }
 
-// Packet receive loop.  This runs in CPU 1, pulling received data
-// words (4 bytes per entry) from the PIO receive FIFO and assembling
-// DDCMP frames for the host.  The frames are delivered to the receive
-// frame buffer ring.
+// CPU 1 polling loop.
+//
+// While CPU 0 is assigned to general data handling tasks and in
+// particular the USB interaction, we have a need for hard real time
+// low latency handling of the data streams from and to the PIO state
+// machines.  For simplicity and reliability this is implemented as a
+// polling loop.
+//
+// This loop is started when the framer is started by host request for
+// the first time.  Since the PICO SDK does not offer a primitive for
+// "stopping" CPU 1, the loop continues to run until the device is
+// powered off, even if the framer is stopped.  The "rx_enabled" flag
+// tells the polling loop whether the framer is on or off.
+//
+// The polling loop performs three tasks.  They are, in priority order:
+//
+// 1. Receive FIFO handling.  Received bytes (including SYN bytes
+//    between packets, once sync has been established) are sent to the
+//    receive state machine FIFO 4 bytes at a time.  The FIFO has 8
+//    entries, i.e., the FIFO capacity is 32 bytes.  The polling loop
+//    reads entries from the FIFO so long as it is not empty,
+//    assembling DDCMP frames according to the frame construction
+//    rules, checking CRC as it goes.  Frames are buffered into the
+//    next available receive buffer in the receive ring (if there is a
+//    free one).  When the frame is complete, it is marked as such by
+//    setting the receive status in the ring entry and advancing the
+//    ring index.  This allows the CPU 0 USB service code to see the
+//    completed buffer and deliver it to the host via USB.
+//
+// 2. Transmit DMA control.  Unlike receive processing, transmit
+//    frames are prepared largely by the host, with CRC supplied by
+//    CPU 0 as it copies the frame into a free transmit ring entry.
+//    The ring entry address is then written to the CPU0->CPU1 FIFO,
+//    indicating it is ready to be transmitted.  The actual delivery
+//    of frame data is via DMA to the transmit PIO state machine FIFO.
+//    The polling loop checks whether the DMA engine is idle.  If yes,
+//    and a transmit was in progress, it is marked as complete by
+//    setting the length field of its transmit ring entry to zero, and
+//    the current transmit pointer is cleared.  Next, if there is an
+//    entry in the CPU0->CPU1 FIFO, it is read; that is the next
+//    transmit ring entry to send.  The polling loop loads buffer
+//    address and length into the DMA engine, which starts the
+//    transfer, and remembers the ring entry pointer to do completion
+//    handling as described above.
+//
+// 3. Frequency measurement data collection.  The frequency PIO state
+//    machine measures the interval between edges in the received data
+//    stream, more precisely across 32 edges, and reports that cycle
+//    count by writing that into its FIFO.  The polling loop reads
+//    these FIFO entries and computes a weight-32 weighted average of
+//    the reported values.  That average is reported on request by CPU
+//    0 in the status frame it sends in response to commands.
 void ddcmp_cpu1 (void)
 {
     int i, bytes;
@@ -423,6 +477,7 @@ void ddcmp_cpu1 (void)
     enum ddcmp_state ds = PKT_START;
     uint16_t crc;
     struct ddcmp_rxframe *frame;
+    struct ddcmp_txframe *txframe = NULL;
     uint8_t *bp;
 
     DPRINTF ("This is core 1, active now\n");
@@ -441,6 +496,29 @@ void ddcmp_cpu1 (void)
                 {
                     rword = pio_sm_get (RXPIO, RXSM);
                     break;
+                }
+                // Next priority after receive: transmit DMA
+                // completion and startup.  We do this if DMA is not
+                // busy. 
+                if (!(txcsr->al1_ctrl & DMA_CH0_CTRL_TRIG_BUSY_BITS))
+                {
+                    if (txframe != NULL)
+                    {
+                        // Current frame pointer is set, mark that
+                        // frame as done and clear the pointer.
+                        txframe->data_len = 0;
+                        txframe = NULL;
+                    }
+                    if (sio_hw->fifo_st & SIO_FIFO_ST_VLD_BITS)
+                    {
+                        // There is data (frame pointer) in the 0->1
+                        // FIFO.  Get that pointer and start the DMA
+                        // for that buffer.  It is now the current
+                        // frame pointer.
+                        txframe = (struct ddcmp_txframe *) (sio_hw->fifo_rd);
+                        txcsr->al1_read_addr = (uint32_t) (txframe->data_start);
+                        txcsr->al1_transfer_count_trig = txframe->data_len;
+                    }
                 }
                 // Lower priority than data handling: gather up
                 // frequency measurement data.
@@ -1015,13 +1093,8 @@ static void stop_ddcmp (void)
     pio_clear_instruction_memory (pio1);
 
     // Make sure DMA is stopped
-    hw_clear_bits (&dma_hw->inte0, txdmask);
     dma_channel_abort (txdma);
-    tbuf_fill = tbuf_empty = tbuf_count = 0;
-    // Clear any pending DMA interrupt.  Leave the interrupt disabled;
-    // it will be enabled by transmit requests.
-    dma_hw->ints0 = txdmask;
-    irq_clear (DMA_IRQ_0);
+    tbuf_fill = tbuf_empty = 0;
     
     // Set all pins to SIO, input.
 #if DEBUG
@@ -1124,13 +1197,8 @@ static void start_ddcmp (uint mflags, uint speed, uint txspeed)
     dma_channel_set_config (txdma, &tx, false);
     dma_channel_set_write_addr (txdma, &(TXPIO->txf[TXSM]), false);
 
-    // Enable IRQ0
-    dma_channel_set_irq0_enabled (txdma, true);
-    irq_set_enabled (DMA_IRQ_0, true);
-    
     // Initialize the transmit ring indices, count, and full flag
     tbuf_empty = tbuf_fill = 0;
-    tbuf_count = 0;
     tx_full = false;
     rx_enabled = true;
     if (mflags & DDCMP3)
@@ -1227,7 +1295,7 @@ void handle_rbuf (void)
     }
 }
 
-static void start_txdma (void *data, int plen)
+static void submit_txbuf (void *data, int plen)
 {
     struct ddcmp_txframe *df = &tbuf_ring[tbuf_fill];
 
@@ -1237,21 +1305,14 @@ static void start_txdma (void *data, int plen)
 #endif
     df->data_len = plen;
     df->data_start = data;
-    // Mask the DMA done interrupt, then increment the pending count
-    // and start DMA if not currently running.
-    hw_clear_bits (&dma_hw->inte0, txdmask);
-    if (tbuf_count++ == 0)
-    {
-        DDPRINTF ("Starting DMA %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
-        txcsr->al1_read_addr = (uint32_t) data;
-        txcsr->al1_transfer_count_trig = plen;
-    }
-    else
-    {
-        DDPRINTF ("DMA already active %d, count %d, len %d\n", tbuf_fill, tbuf_count, plen);
-    }
-    hw_set_bits (&dma_hw->inte0, txdmask);
+
+    // Now send the descriptor to CPU 1.  We don't need to check for
+    // room in the FIFO since that has 8 entries, which is the max
+    // number of transmit buffers.
+    sio_hw->fifo_wr = (uint32_t) df;
     txblink ();
+
+    DDPRINTF ("Submitted tx %d, len %d\n", tbuf_fill, plen);
 
     // Update transmit ring index
     tbuf_fill = (tbuf_fill + 1) % TBUFS;
@@ -1312,7 +1373,7 @@ static void command (const void *_cmd, uint16_t size)
         }
         df = &tbuf_ring[tbuf_fill];
         memcpy (df->data, &cmd->mflags, plen);
-        start_txdma (df->data, plen);
+        submit_txbuf (df->data, plen);
         send_status = false;
         break;
     default:
@@ -1335,38 +1396,6 @@ static void crccpy (uint8_t *dst, const uint8_t *restrict src, int cnt)
     *dst++ = crc >> 8;
 }
 
-// Interrupt handler for DMA IRQ0
-void dma_done (void)
-{
-    int te;
-    struct ddcmp_txframe *df;
-
-    DDPRINTF ("DMA done, count was %d, ctl %08x\n",
-              tbuf_count, txcsr->al1_ctrl);
-    
-    // Clear the interrupt request
-    dma_hw->ints0 = txdmask;
-    irq_clear (DMA_IRQ_0);
-    
-    // Advance the empty pointer
-    tbuf_empty = te = (tbuf_empty + 1) % TBUFS;
-    
-    // Decrement pending transmit count
-    if (--tbuf_count != 0)
-    {
-        // Still non-zero, start up another DMA
-        DDPRINTF ("irq: starting another DMA for %d\n", te);
-        df = &tbuf_ring[te];
-        txcsr->al1_read_addr = (uint32_t) (df->data_start);
-        assert ((txcsr->al1_ctrl & (1<<24)) == 0);
-        txcsr->al1_transfer_count_trig = df->data_len;
-    }
-    else
-    {
-        hw_clear_bits (&dma_hw->inte0, txdmask);
-    }
-}
-
 static bool transmit (uint8_t *pkt, uint16_t size)
 {
     struct ddcmp_txframe *df = &tbuf_ring[tbuf_fill];
@@ -1386,9 +1415,10 @@ static bool transmit (uint8_t *pkt, uint16_t size)
         send_status = true;
         return true;
     }
-    if (tbuf_count == TBUFS)
+    if (df->data_len != 0)
     {
-        // All buffers are still being transmitted
+        // Next buffer still busy, so all buffers are still being
+        // transmitted.
         tx_full = true;
         return false;
     }
@@ -1461,11 +1491,11 @@ static bool transmit (uint8_t *pkt, uint16_t size)
     if (dmc_syn_al)
     {
         // DDCMP V3 on DMC11-AL compatibility
-        start_txdma (df->syn, plen + SYN_CNT_V3);
+        submit_txbuf (df->syn, plen + SYN_CNT_V3);
     }
     else
     {
-        start_txdma (df->syn + (SYN_CNT_V3 - SYN_CNT), plen + SYN_CNT);
+        submit_txbuf (df->syn + (SYN_CNT_V3 - SYN_CNT), plen + SYN_CNT);
     }
     return true;
 }
@@ -1589,12 +1619,12 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
 // Check for a transmit done that transmit is waiting for.  The
 // transmit request handler sets a flag if there are no free transmit
 // buffers when a transmit request arrives.  Here we check if that
-// flag is set and the number of pending transmits has dropped below
-// the max.  If yes, tell the USB machinery that it can submit the
-// rejected buffer again.
+// flag is set but the next transmit buffer in the ring is now free.
+// If yes, tell the USB machinery that it can submit the rejected
+// buffer again.
 static void handle_tdone (void)
 {
-    if (tx_full && tbuf_count != TBUFS)
+    if (tx_full && tbuf_ring[tbuf_fill].data_len == 0)
     {
         tx_full = false;
         if (!bist)
@@ -1673,6 +1703,9 @@ static void init_once (void)
     // Fill in the transmit SYN bytes
     for (i = 0; i < TBUFS; i++)
     {
+        // Mark it as free
+        tbuf_ring[i].data_len = 0;
+        
         // Set up the sync bytes
         for (j = 0; j < sizeof (tbuf_ring[0].syn); j++)
         {
@@ -1685,9 +1718,6 @@ static void init_once (void)
     txdmask = 1 << txdma;
     txcsr = dma_channel_hw_addr (txdma);
 
-    // Set interrupt handler
-    irq_set_exclusive_handler (DMA_IRQ_0, dma_done);
-    
     // Now initialize everything else
     stop_ddcmp ();
 
