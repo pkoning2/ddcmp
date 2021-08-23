@@ -15,19 +15,29 @@ In either direction, we pad frames to the minimum frame length of Ethernet.  USB
 Command/status packets begin with 021 (DC1) which is not a DDCMP frame start value.  Outbound they carry commands to the adapter; inbound they carry status and counters.  Note that the inbound status packet is preceded by a receive status word, as always; for status packets the receive status is always zero (OK).
 
 Receive status word values:
+
 0: good frame
+
 1: Header CRC error
+
 2: Data CRC error
+
 3: Frame too long (if so, the entire data field is absent)
 
 Command packets start with 021.  The next byte is the command:
+
 0: status request
+
 1: start
+
 2: stop
+
 3: send raw data
+
 Status, start, and stop commands produce a status packet in reply (the status request simply is a "no state change" command).  "Send raw data" commands do not for valid requests, but if the command is rejected for any reason a status is generated to show this. For "send raw data", the data to be sent is the remainder of the command packet, starting immediately ater the command byte.  
 
 For start, configuration settings follow:
+
 Mode and flag bits (2 bytes).  Mode is the bottom 2 bits:
 
 0: RS-232 DTE mode (bit clocks supplied by the connected modem)
@@ -99,7 +109,7 @@ Last command status values are:
 
 4: Speed out of range.  Supported speeds are 500 to 1,000,000 bits per second.
 
-5: Bad transmit length.  For regular transmits, this means a control frame (starts with 0x05) less than 6 bytes long, or a data frame (starts with 0x81 or 0x90) with length in the header either 0 or greater than 1488, or not enough data in the Ethernet packet for the length given in the header.  For raw transmit, moer than 1488 bytes.
+5: Bad transmit length.  For regular transmits, this means a control frame (starts with 0x05) less than 6 bytes long, or a data frame (starts with 0x81 or 0x90) with length in the header either 0 or greater than 1486, or not enough data in the Ethernet packet for the length given in the header.  For raw transmit, more than 1486 bytes.
 
 6: Transmit request when the framer is stopped.
 
