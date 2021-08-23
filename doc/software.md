@@ -31,4 +31,4 @@ This will build all the necessary components and produce a loadable binary, `ddc
 
 ## Options
 
-There is only one build option: change `#define DEBUG 0` to `#define DEBUG 1` to enable debug output to the UART.  Plug in a 3.3 volt UART at J1 (note the orientation: pin 1, black wire, is marked by a dot).  The UART is set for 115,200 baud, 8 bits, no parity.  Debug messages appear in the source code as DPRINTF statements.  You can define DEBUG to be 2, this also enables the detailed debug messages (DDPRINTF), but that is very verbose and will significantly slow down operation of the device.
+There is only one significant build option: change `#define DEBUG 0` to `#define DEBUG 1` to enable debug output to the UART.  Plug in a 3.3 volt UART at J1 (note the orientation: pin 1, black wire, is marked by a dot).  The UART is set for 115,200 baud, 8 bits, no parity.  Debug messages appear in the source code as DPRINTF statements.  You can define DEBUG to be 2, this also enables the detailed debug messages (DDPRINTF), but that is very verbose and will significantly slow down operation of the device.

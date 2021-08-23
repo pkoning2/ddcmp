@@ -13,6 +13,12 @@
 // off UART use.
 #define DEBUG 0
 
+// Define this as 0 to turn off padding of frames going to the host.
+// For maximal compatibility with various Ethernet drivers we normally
+// pad frames so they are at least 60 bytes (Ethernet minimum, not
+// counting CRC).
+#define PADRUNT 1
+
 // Define this to 1 (default) for 8 bit transmit FIFO, 0 for 32 bit
 // transmit FIFO.  For standard speeds, 8 bit FIFO is more than
 // adequate.
@@ -39,6 +45,12 @@
 #define VERSION "DDCMP Framer V1.0"
 
 #define MB asm volatile ("" : : : "memory")
+
+#if PADRUNT
+#define MINE(x) ((x) > 60) ? (x) : 60
+#else
+#define MINE(x) (x)
+#endif
 
 #if DEBUG
 // Debugging, if enabled, uses the UART at the default pins (pin 1 and
@@ -87,6 +99,9 @@ volatile int avg_period = 0;
 
 // Receive (and more generally, the device) enabled state.
 volatile bool rx_enabled = false;
+
+// Last reported SYN status
+bool syn_status = false;
 
 // Selftest mode active
 bool bist = false;
@@ -153,13 +168,14 @@ const uint8_t opins[] = {
 #define DC1 0021        // DC1 - used here for command/status, not DDCMP
 
 #define SYN4 0x96969696U
-#define RXLIMIT (1500 - 2) // Max received total frame size to host
+#define RXLIMIT (1498 - 2) // Max received total frame size to host
 #define RDMAX (RXLIMIT - 8 - 2) // Max receive DDCMP data length
-#define TXLIMIT 1500    // Max transmit total frame size from host
+#define TXLIMIT 1498    // Max transmit total frame size from host
 #define TDMAX (TXLIMIT - 6) // Max transmit DDCMP data length
 #define MAXLEN (RDMAX < TDMAX ? RDMAX : TDMAX) // Max DDCMP payload
 #define RDATA (MAXLEN + 8 + 2) // Frame space in rings
-#define BUF_OFF 16      // Buffer offset to start of DDCMP frame
+#define ETH_HDR 14      // Length of Ethernet header
+#define RBUF_OFF (ETH_HDR + 4) // Rx buffer offset to start of DDCMP frame
 #define SYN_CNT 8       // Count of SYN bytes before tx frame start
 #if TX8
 #define SYN_CNT_V3 10   // Ditto, but in DMC11-AL V3 compatibility mode
@@ -208,8 +224,8 @@ enum ddcmp_status
 // DDCMP frame buffer layout (framer to host)
 struct ddcmp_rxframe
 {
-    int data_len;
-    uint8_t bufhdr[BUF_OFF - 2]; // room for "Ethernet" header
+    uint8_t bufhdr[ETH_HDR]; // room for "Ethernet" header
+    uint16_t data_len;      // DDCMP payload length
     volatile uint16_t stat; // Status (ddcmp_status code)
     uint8_t data[RDATA];    // DDCMP frame data (header + payload)
 };
@@ -257,10 +273,11 @@ volatile dma_channel_hw_t *txcsr;
 // host.  The host interface address is aa-00-03-04-05-06; the framer
 // appears as an Ethernet device on that LAN with fixed address
 // aa-00-03-04-05-07.
-static const uint8_t default_hdr[BUF_OFF] = {
+static const uint8_t default_hdr[RBUF_OFF] = {
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x06,         // Dest:   aa-00-03-04-05-06
     0xaa, 0x00, 0x03, 0x04, 0x05, 0x07,         // Source: aa-00-03-04-05-07
     0x60, 0x06,                                 // Prot:   60-06 (customer)
+    0, 0,                                       // Payload length
     BUF_EMPTY, 0x00                             // Status
 };
 
@@ -292,13 +309,16 @@ enum ddcmp_action
 // Status message.  This starts like a data message, except that the
 // header byte is DC1 (0x11) rather than one of the three DDCMP start
 // of header codes.
+// Note that things must be kept naturally aligned to avoid padding.
 struct status_msg_t
 {
-    uint8_t bufhdr[BUF_OFF - 2];    // room for "Ethernet" header
+    uint8_t bufhdr[ETH_HDR];        // room for "Ethernet" header
+    uint16_t data_len;              // Length of Ethernet payload
     uint16_t stat;                  // Status (ddcmp_status code)
     uint8_t dc1;
     uint8_t on;                     // "on" flags
     uint16_t mflags;
+    uint16_t sdusize;               // Max DDCMP frame payload
     uint32_t speed;
     uint32_t txspeed;
     uint32_t rxframes;
@@ -1214,6 +1234,7 @@ static void start_ddcmp (uint mflags, uint speed, uint txspeed)
         dmc_syn_al = dmc = false;
     }
     status_msg.on = ON_ACT;
+    syn_status = false;
     status_msg.mflags = mflags;
     status_msg.speed = speed;
     status_msg.txspeed = txspeed;
@@ -1270,7 +1291,7 @@ void handle_rbuf (void)
         if (tud_network_can_xmit ())
         {
             DPRINTF ("requesting status transmit\n");
-            tud_network_xmit (&status_msg, sizeof (status_msg));
+            tud_network_xmit (&status_msg, MINE (sizeof (status_msg)));
             return;
         }
     }
@@ -1289,7 +1310,7 @@ void handle_rbuf (void)
             if (tud_network_can_xmit ())
             {
                 DDPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
-                tud_network_xmit (df->bufhdr, df->data_len + BUF_OFF);
+                tud_network_xmit (df->bufhdr, MINE (df->data_len + ETH_HDR + 2));
             }
         }
     }
@@ -1503,7 +1524,8 @@ static bool transmit (uint8_t *pkt, uint16_t size)
 // Handle frames from host
 static bool handle_frame (const uint8_t *src, uint16_t size)
 {
-    int plen = size - 14;
+    int plen = size - 16;
+    int plen2;
 
     if (src[12] != 0x60 || src[13] != 0x06)
     {
@@ -1515,12 +1537,19 @@ static bool handle_frame (const uint8_t *src, uint16_t size)
         DPRINTF ("Frame from host too short, %d\n", size);
         return true;
     }
-    if (src[14] == DC1)
+    plen2 = src[14] + (src[15] << 8);
+    if (plen2 > plen || plen2 < 1)
     {
-        command (src + 14, plen);
+        DPRINTF ("Length field is invalid, %d vs. %d\n", plen, plen2);
         return true;
     }
-    if (src[14] == SOH || src[14] == ENQ || src[14] == DLE)
+    plen = plen2;
+    if (src[16] == DC1)
+    {
+        command (src + 16, plen);
+        return true;
+    }
+    if (src[16] == SOH || src[16] == ENQ || src[16] == DLE)
     {
         // Data, send it.  But if BIST is active, silently discard all
         // transmit requests.
@@ -1528,9 +1557,9 @@ static bool handle_frame (const uint8_t *src, uint16_t size)
         {
             return true;
         }
-        return transmit ((uint8_t *) (src + 14), plen);
+        return transmit ((uint8_t *) (src + 16), plen);
     }
-    DPRINTF ("Unknown frame code %03o\n", src[14]);
+    DPRINTF ("Unknown frame code %03o\n", src[16]);
     
     return true;
 }
@@ -1561,10 +1590,12 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
             if (gpio_get (SYNLED))
             {
                 status_msg.on = ON_ACT | ON_SYN;
+                syn_status = true;
             }
             else
             {
                 status_msg.on = ON_ACT;
+                syn_status = false;
             }
         }
         
@@ -1596,18 +1627,20 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
         }
         status_msg.freq = freq;
 
-        len = sizeof (status_msg);
+        len = MINE (sizeof (status_msg));
         memcpy (dst, &status_msg, len);
         DPRINTF ("Sending status report length %d\n", len);
     }
     else if (df->stat != BUF_EMPTY)
     {
-        len = df->data_len + BUF_OFF;
+        df->data_len += 2;
+        len = df->data_len + ETH_HDR + 2;
         DDPRINTF ("Sending to host received frame %d status %d len %d\n",
                   rbuf_empty, df->stat, df->data_len);
         dumpbuf (df->bufhdr, len);
 
         // Give it to USB
+        len = MINE (len);
         memcpy (dst, df->bufhdr, len);
         // Mark buffer as handled
         df->stat = BUF_EMPTY;
@@ -1685,9 +1718,11 @@ static void init_once (void)
     
     DPRINTF ("Initializing status buffer\n");
     memcpy (&status_msg, default_hdr, sizeof (default_hdr));
+    status_msg.data_len = sizeof (status_msg) - RBUF_OFF;
     status_msg.dc1 = DC1;
     status_msg.stat = DDCMP_OK;
     status_msg.on = 0;
+    status_msg.sdusize = MAXLEN;
     strcpy (status_msg.version, VERSION);
     
     // No need to clear the counters since this buffer is static so
@@ -1803,6 +1838,22 @@ int main ()
         if (bist)
         {
             send_bist_data ();
+        }
+        if (status_msg.on)
+        {
+            // Framer is on, see if we need to update host with new
+            // SYN status.
+            if (gpio_get (SYNLED))
+            {
+                if (!syn_status)
+                {
+                    send_status = true;
+                }
+            }
+            else if (syn_status)
+            {
+                send_status = true;
+            }
         }
         tud_task();
         handle_rbuf ();

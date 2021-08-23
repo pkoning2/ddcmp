@@ -2,7 +2,7 @@
 
 The framer appears to the host as an Ethernet interface.  The interface hardware address is hardcoded aa-00-03-04-05-06 (an unused address from a range assigned to DEC and then rendered obsolete by IEEE 802 -- see `ether-i.pdf`).  The framer itself then appears as another Ethernet node connected to that NIC, with hardcoded address aa-00-03-04-05-07.
 
-Communication with the framer uses raw Ethenet packets with protocol type is 60-06 (DEC protocol type assigned to "Customer use").
+Communication with the framer uses raw Ethenet packets with protocol type is 60-06 (DEC protocol type assigned to "Customer use").  Following the protocol type is a payload length field, 2 bytes little endian, following the common pattern of many Digital protocols (like DECnet).  This allows the frames to be padded to the minimum Ethernet size; USB does not require this but SIMH does.
 
 The payload of these Ethernet packets is either a DDCMP frame, or a command/status packet.  The encoding is slightly different for inbound (received data to host) vs. outbound (transmitted data from host).
 
@@ -10,7 +10,7 @@ Outbound payloads are simply DDCMP frames as encoded on the wire, except that th
 
 Inbound payloads begin with a 2-byte receive status value, followed by the received DDCMP frame exactly as received, including the CRC fields.  Note that the framer implements CRC checking; the host normally would not look at the CRC bytes but simply use the status value to learn whether the packet is good or bad.
 
-In either direction, we ignore the minimum frame length of Ethernet; only the needed bytes are sent since the USB emulated Ethernet NIC does not appear to object to undersized frames.  But since we limit framer packets to standard Ethernet size, the largest DDCMP data length supported is 1488.
+In either direction, we pad frames to the minimum frame length of Ethernet.  USB emulated Ethernet NIC does not appear to object to undersized frames, but some applications (like SIMH) assume that the Ethernet minimum should be enforced.  Since we limit framer packets to standard Ethernet size, the largest DDCMP data length supported is 1486.
 
 Command/status packets begin with 021 (DC1) which is not a DDCMP frame start value.  Outbound they carry commands to the adapter; inbound they carry status and counters.  Note that the inbound status packet is preceded by a receive status word, as always; for status packets the receive status is always zero (OK).
 
@@ -57,10 +57,11 @@ Transmit speed (4 bytes):
 
 This is the transmit data rate, if the "split speed" bit is set in `mflags`.
 
-Status packet starts with 021 (after the usual 2 byte receive status field), followed by state and counter data:
+Status packet starts with 021 (after the usual 2 byte payload length and receive status fields), followed by state and counter data:
 
 * state (1 byte): flags, bit 0 = on (active), bit 1 = in-sync
 * mode and flags (2 bytes): as described above for the Start command
+* maximum frame payload: 1486 -- information for the host software
 * speed (4 bytes): as described above.  Not used for RS-232 DTE mode.
 * transmit speed (4 bytes): as described above.  
 * Counters -- all are 4 bytes and wrap on overflow:
@@ -76,6 +77,13 @@ Status packet starts with 021 (after the usual 2 byte receive status field), fol
 * last command status (4 bytes), 0 for good, non-zero for various errors
 * measured data rate (4 bytes), in bits per second
 * framer firmware version (null-terminated ASCII string)
+
+Status messages are generated:
+1. At device powerup.
+2. In response to any command.
+3. In response to a transmit or raw-transmit request that has invalid parameters.
+4. When the in-sync status changes (sync acquired or sync lost).
+5. In BIST mode, after every 1000 transmitted frames.
 
 Note that the measured data rate for the integral modem case is an approximation since it operates by measuring the edge timing of the received waveform.  The calculation assumes that the received data is half ones and half zeroes, which is the case for an idle line (SYN bytes are half and half).  If the line is actively carrying data and that data has a different bit density the measured line rate will be inaccurate; in particular for all zeroes it will be 33% higher than the true value.  The intent of this data item is to allow checking the data rate of a connected device whose clock may be off spec or unknown, allowing the framer to be configured with a matching data rate for reliable operation.
 
@@ -109,4 +117,4 @@ BIST mode can also requested by setting bit 3 in the mode/flags field of a "Star
 
 The DECnet/Python package, in the `tests` directory, contains a set of framer tests in `test_framer.py`.  These can be invoked in the usual way, either the full set or any desired specific tests or test classes.  Refer to the Python library manual, "unittest" module, for details.  Some of the tests require loopback connectors to be installed, and some that use RS-232 DTE mode also require a clock source such as a modem eliminator to be attached to the DTE connector.  If this is not done those tests will fail with messages indicating the reason is a missing loopback connector or clock source.
 
-The full set of framer tests require about TBD minutes to run.
+The full set of framer tests require about 3.5 minutes to run.

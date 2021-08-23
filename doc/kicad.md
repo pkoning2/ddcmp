@@ -1,11 +1,11 @@
 # DDCMP Framer
 
-The `kicad/ddcmp` subdirectory contains the design files for the DDCMP framer circuit board, which you can inspect or modify using the open source KiCAD package.
+The `kicad/ddcmp` subdirectory contains the design files for the DDCMP framer circuit board (AK-005 A), which you can inspect or modify using the open source KiCAD package.
 
 ## Creating the circuit board
 
 There are three ways to get a circuit board.
-1. From the shared designs section of the OSHPark PCB fabricator website, in [this link](https://oshpark.com/shared_projects/TO_BE_SUPPLIED "DDCMP Framer").
+1. From the shared designs section of the OSHPark PCB fabricator website, in [this link](https://oshpark.com/shared_projects/buAWT8Hy "DDCMP Framer").
 2. From any PCB fabricator that accepts KiCAD board files (such as OSHPark).
 3. From any PCB fabricator that doesn't, by generating the standard *Gerber* files.
 
@@ -61,7 +61,7 @@ Here are all the parts in the design, with schematic reference (also on the boar
 | U3 | MAX3222 | RS-232 transceiver | Maxim | MAX3222ECPN+-ND |
 | U4 | MAX3222 | RS-232 transceiver | Maxim | MAX3222ECPN+-ND |
 
-If you want to use Digikey as your supplier, the saved BOM is available [there](https://www.digikey.com/short/TO_BE_SUPPLIED "Digikey BOM").  Note that TR1 and TR2 are not in that BOM since Digikey does not have these; you can order them directly from Mini-Circuits.
+If you want to use Digikey as your supplier, the saved BOM is available [there](https://www.digikey.com/short/h1mqd0dm "Digikey BOM").  Note that TR1 and TR2 are not in that BOM since Digikey does not have these; you can order them directly from Mini-Circuits.
 
 ### Optional components
 
@@ -90,7 +90,7 @@ If you have trouble getting this part, several other Mini-Circuits transformers 
 
 #### Tested alternatives
 
-1. Mini-Circuits ADT1-6T+ (Digikey 3157-ADT1-6T+CT-ND).  This one has a specified lower limit of 30 kHz, which means 56kbps is slightly out of spec.  Loopback test over around 70 feet of small size coax with a number of connectors to it shows no errors, but the eye pattern is just barely open enough for that to be true.  Higher speeds work fine and have excellent eye patterns.  If you intend to use short cables, or high speeds (250 kbps or above), this option is fine.
+1. Mini-Circuits ADT1-6T+ (Digikey 3157-ADT1-6T+CT-ND).  This one has a specified lower limit of 30 kHz, which means 56kbps is slightly out of spec.  Loopback test over around 70 feet of small size coax with a number of connectors shows no errors, but the eye pattern is just barely open enough for that to be true.  Higher speeds work fine and have excellent eye patterns.  If you intend to use short cables, or high speeds (250 kbps or above), this option is fine.
 
 #### Untested alternatives
 
@@ -109,7 +109,7 @@ If you use the line unit 40-pin connection (J8) with the integral modem, you wil
 ### Assembly suggestions
 
 I found that this order of installing the components works well:
-1. U1 (Raspberry Pico).  You can surface-mount this or use pin headers (or even short wires) if you prefer.
+1. U1 (Raspberry Pico).  You can surface-mount this or use pin headers (or even short wires) if you prefer.  There are mounting holes to secure the part to the board, which is probably a good idea if surface mounted so the mechanical integrity doesn't depend on the shear strength of the solder joints.  The mounting holes are for M2 (metric 2 millimeter) screws.  #2 US screws are a hair too big.
 2. TR1, TR2 transformers, if you are using surface mount parts
 3. Resistors and capacitors
 4. LEDs
@@ -120,6 +120,8 @@ I found that this order of installing the components works well:
 Note the correct orientation of D1, D2, D3, J7, J8, U1, U2, U3, and U4.  U1 is oriented with the USB at the top of the board and all the contacts matched to pads on the board.  The other three ICs have a square pad at pin 1.  J7 (the 40-pin connector) has the keying notches towards the top of the board.  The LEDs have their flat side at the square pad.
 
 The transformers TR1 and TR2 have an orientation dot on the package.  For the ADT2-71T+ orintation is important (see above).
+
+The coax connectors (J2 and J3) are made of zinc alloy (pot metal).  This is unfortunately standard practice for PCB mount BNC connectors.  Before installing, lightly sand the thick body pins to make the solder stick better.  It will take a fair amount of heat to solder these pins; use an adequate soldering iron and beware of burning your fingers on the connector bodies for several minutes afterwards.
 
 ## Software load
 
