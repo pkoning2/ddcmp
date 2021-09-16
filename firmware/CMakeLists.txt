@@ -19,6 +19,7 @@ target_link_libraries(ddcmp_libs INTERFACE
     hardware_pio
     hardware_timer
     pico_multicore
+    pico_unique_id
     pico_platform
     pico_stdlib
     pico_stdio_uart

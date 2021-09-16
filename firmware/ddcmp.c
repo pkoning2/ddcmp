@@ -16,7 +16,15 @@
 // Define this as 0 to turn off padding of frames going to the host.
 // For maximal compatibility with various Ethernet drivers we normally
 // pad frames so they are at least 60 bytes (Ethernet minimum, not
-// counting CRC).
+// counting CRC).  While USB does not need this, SIMH does.
+//
+// Note that padding is always allowed but never required on frames
+// from host to framer.
+//
+// Padding has a noticeable impact on performance when dealing with
+// rapid fire short frames (such as control frames).  For example, the
+// unit test TestRaw.test_concat_ctl works at the full 1 Mb/s speed
+// with padding off, but can only do 500 kb/s if padding is turned on.
 #define PADRUNT 1
 
 // Define this to 1 (default) for 8 bit transmit FIFO, 0 for 32 bit
@@ -41,6 +49,7 @@
 #include <pico/multicore.h>
 #include <hardware/pll.h>
 #include <hardware/clocks.h>
+#include <pico/unique_id.h>
 
 #define VERSION "DDCMP Framer V1.0"
 
@@ -171,7 +180,7 @@ const uint8_t opins[] = {
 #define RXLIMIT (1498 - 2) // Max received total frame size to host
 #define RDMAX (RXLIMIT - 8 - 2) // Max receive DDCMP data length
 #define TXLIMIT 1498    // Max transmit total frame size from host
-#define TDMAX (TXLIMIT - 6) // Max transmit DDCMP data length
+#define TDMAX (TXLIMIT - 8) // Max transmit DDCMP data length
 #define MAXLEN (RDMAX < TDMAX ? RDMAX : TDMAX) // Max DDCMP payload
 #define RDATA (MAXLEN + 8 + 2) // Frame space in rings
 #define ETH_HDR 14      // Length of Ethernet header
@@ -270,20 +279,27 @@ uint txdmask;
 volatile dma_channel_hw_t *txcsr;
 
 // Default buffer header (Ethernet header) for messages from framer to
-// host.  The host interface address is aa-00-03-04-05-06; the framer
-// appears as an Ethernet device on that LAN with fixed address
-// aa-00-03-04-05-07.
-static const uint8_t default_hdr[RBUF_OFF] = {
-    0xaa, 0x00, 0x03, 0x04, 0x05, 0x06,         // Dest:   aa-00-03-04-05-06
-    0xaa, 0x00, 0x03, 0x04, 0x05, 0x07,         // Source: aa-00-03-04-05-07
+// host.  The host interface address is aa-00-03-xx-yy-zz where the
+// last 24 bits are random values generated from the board unique ID.
+// The framer appears as an Ethernet device on that LAN with address
+// one larger than the host interface address.
+static uint8_t default_hdr[RBUF_OFF] = {
+    0xaa, 0x00, 0x03, 0x00, 0x00, 0x00,         // Dest:   aa-00-03-xx-yy-zz
+    0xaa, 0x00, 0x03, 0x00, 0x00, 0x00,         // Source
     0x60, 0x06,                                 // Prot:   60-06 (customer)
     0, 0,                                       // Payload length
     BUF_EMPTY, 0x00                             // Status
 };
 
 // This is the USB Ethernet interface address.
-const uint8_t tud_network_mac_address[6] = {
-    0xaa, 0x00, 0x03, 0x04, 0x05, 0x06         // ifaddr: aa-00-03-04-05-06
+//
+// PLEASE NOTE: In the standard tinyusb library this is declared as
+// "extern const uint8_t [6]" which we can't accept because the low
+// order bits have to be set at initialization time.  You will need to
+// edit src/class/net/net_device.h to remove the "const" from that
+// declaration, otherwise the compiler will complain.
+uint8_t tud_network_mac_address[6] = {
+    0xaa, 0x00, 0x03, 0x00, 0x00, 0x00         // ifaddr: aa-00-03-xx-yy-zz
 };
 
 // Command message.  This starts like a data message, except that the
@@ -1471,7 +1487,7 @@ static bool transmit (uint8_t *pkt, uint16_t size)
             pkt[2] &= 0x3f;
         }
         plen = pkt[1] | ((pkt[2] & 0x3f) << 8);
-        if (plen == 0 || plen > MAXLEN || plen + 6 > size)
+        if (plen == 0 || plen > MAXLEN || plen + 8 > size)
         {
             DPRINTF ("Bad DDCMP length %d buffer size %d\n", plen, size);
             status_msg.last_cmd_sts = TX_BAD_LENGTH;
@@ -1479,10 +1495,14 @@ static bool transmit (uint8_t *pkt, uint16_t size)
             return true;
         }
         
-        // Put the DDCMP payload after the header.  Note there is a
-        // CRC in the transmit ring buffer but not in the buffer we
-        // got from the host, hence the two different offsets.
-        crccpy (df->data + 8, pkt + 6, plen);
+        // Put the DDCMP payload after the header.  For maximal
+        // transparency to existing SIMH code we use a frame laid out
+        // as sent with the CRC field included, but the value there is
+        // not actually used.  Instead, we generate the CRC here and
+        // skip over what the host sent.  The ending CRC (header CRC
+        // for control frames, data CRC for data frames) is ignored
+        // and need not be included in the packet length.
+        crccpy (df->data + 8, pkt + 8, plen);
         plen += 8 + 2;
     }
     // Update counters
@@ -1639,9 +1659,11 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
                   rbuf_empty, df->stat, df->data_len);
         dumpbuf (df->bufhdr, len);
 
-        // Give it to USB
-        len = MINE (len);
+        // Give it to USB (just the real payload, padding is not
+        // written to the USB buffer).
         memcpy (dst, df->bufhdr, len);
+        // Report the padded (if requested) length
+        len = MINE (len);
         // Mark buffer as handled
         df->stat = BUF_EMPTY;
         rbuf_empty = (rbuf_empty + 1) % RBUFS;
@@ -1687,7 +1709,7 @@ void rndis_class_set_handler(uint8_t *data, int size)
 // and DEL byte appended we're at a multiple of 4, ensuring no SYN
 // padding at the end even if 32 bit transmit FIFO is used.
 #define BIST_LEN 501
-uint8_t bist_data[6 + BIST_LEN] = {
+uint8_t bist_data[8 + BIST_LEN] = {
     DLE, BIST_LEN & 0xff, BIST_LEN >> 8
 };
 uint32_t bist_seq;
@@ -1696,7 +1718,7 @@ static void send_bist_data (void)
 {
     if (!tx_full)
     {
-        memcpy (bist_data + 6, &bist_seq, 4);
+        memcpy (bist_data + 8, &bist_seq, 4);
         memcpy (bist_data + 3, &bist_seq, 2);
         if (transmit (bist_data, sizeof (bist_data)))
         {
@@ -1756,7 +1778,10 @@ static void init_once (void)
     // Now initialize everything else
     stop_ddcmp ();
 
-    p = bist_data + 10;
+    // The test data pattern starts after the 4-byte sequence number
+    // field (which is written when the buffer is queued for
+    // transmit).
+    p = bist_data + 12;
     while (p < bist_data + sizeof (bist_data))
     {
         *p++ = 0xaa;
@@ -1770,6 +1795,14 @@ static void init_once (void)
 
 int main ()
 {
+    union 
+    {
+        pico_unique_board_id_t uid;
+        uint32_t id32[2];
+    } id;
+    uint32_t id24;
+    int i;
+    
     // Start by changing the system clock to 120 MHz, which is an
     // integral multiple of the fast line speeds we want to support.
     // That way we can support the exact nominal values rather than
@@ -1805,6 +1838,20 @@ int main ()
                      CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
                      120 * MHZ,
                      120 * MHZ);
+
+    // Get unique ID, use it to make up Ethernet addresses.  The
+    // interface address is forced to be even, the framer address is
+    // one higher.
+    pico_get_unique_board_id (&id.uid);
+    id24 = (id.id32[0] ^ id.id32[1]) & 0xfffffe;
+    default_hdr[3] = (id24 >> 16) & 0xff;
+    default_hdr[4] = (id24 >>  8) & 0xff;
+    default_hdr[5] = (id24 >>  0) & 0xff;
+    id24++;
+    default_hdr[6 + 3] = (id24 >> 16) & 0xff;
+    default_hdr[6 + 4] = (id24 >>  8) & 0xff;
+    default_hdr[6 + 5] = (id24 >>  0) & 0xff;
+    memcpy (tud_network_mac_address, default_hdr, 6);
     
 #if DEBUG
     // Initialize stdio and the UART.  Note this has to be done after
@@ -1814,6 +1861,10 @@ int main ()
     DPRINTF ("\n\nInitializing DDCMP framer\n");
     DPRINTF (VERSION "\n");
     DPRINTF ("Max packet length: %d\n", MAXLEN);
+    DPRINTF ("Interface address: ");
+    for (i = 0; i < 5; i++)
+        DPRINTF ("%02X-", default_hdr[i]);
+    DPRINTF ("%02X\n", default_hdr[5]);
     
     init_once ();
 
