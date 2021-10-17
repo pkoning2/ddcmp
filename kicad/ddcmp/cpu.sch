@@ -350,8 +350,6 @@ NoConn ~ 5250 3050
 NoConn ~ 5250 2950
 NoConn ~ 6650 3650
 NoConn ~ 6650 3850
-NoConn ~ 6650 3950
-NoConn ~ 6650 4450
 Wire Wire Line
 	6650 2750 6850 2750
 $Comp
@@ -402,7 +400,13 @@ NoConn ~ 4850 3650
 Text Notes 4800 3650 2    50   ~ 0
 Integral modem receive strobe
 Text Notes 4950 3250 2    50   ~ 0
-The four pins listed below are no-connect, but they can be\nused as test points to observe internal status of the framer. 
+The four pins listed below, as well as pin 26 (GPIO20) are no-connect, but \nthey can be used as test points to observe internal status of the framer. 
 Text Notes 6850 6150 0    100  ~ 0
 Note:\n1. J1 can be omitted if the debug UART is not needed.\n2. J4 can be omitted if power on BIST is not needed.\n3. D1, D2, and/or D3 and R3, R4, and/or R5 can be\n   omitted if the corresponding indicator is not needed.
+Wire Wire Line
+	6650 4450 7150 4450
+NoConn ~ 7150 4450
+Text Notes 7200 4500 0    50   ~ 0
+Clock ok
+NoConn ~ 6650 3950
 $EndSCHEMATC

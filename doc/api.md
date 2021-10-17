@@ -24,6 +24,8 @@ Receive status word values:
 
 3: Frame too long (if so, the entire data field is absent)
 
+4: Loss of carrier or bit clock in the middle of a frame (the buffer will contain the portion of the frame that was received)
+
 Command packets start with 021.  The next byte is the command:
 
 0: status request
@@ -59,6 +61,10 @@ terminate the test.
 
 Bit 4: Split speed.  This applies only to the integral modem case.  If set, the transmit speed is taken from the txspeed field rather than the speed field.  This is a test function that allows verifying the correct operation of receive data recovery when the sending end data rate is out of spec.
 
+Bit 5: DMC mode (DDCMP V3.03).  Modifies the frame generation rules to match what the DMC11 needs.  See the DMC11 Microprocessor manual, appendix I, for details.
+
+Bit 6: Raw waveform mode.  Valid with integral modem only.  In this mode, the modulator part of the integral modem handling is bypassed.  Only the "raw transmit" command can be be used; regular transmit is rejected.  Cannot be combined with BIST mode.  The raw transmit buffer is interpreted as one bit per modulation time slot (two bits per data element) directly representing the waveform to be transmitted.  This is a test mode, intended for verifying receive clock/data recovery and the handling of loss of carrier.  See the "test_framer" test suite for examples.
+
 Speed: (4 bytes):
 
 This specifies the bit rate in bits per second.  For RS-232 DCE mode, it is the frequency of the receive and transmit clock signals.  For integral modem, it is the transmit speed and the nominal receive speed; actual receive clocking is from the incoming data, which must match the specified rate +/- 6%.  Speed is not applicable for RS-232 DTE mode, in which the bit clocking is entirely under control of the modem.  Note that RS-232 is not officially specified for high speeds; it works well at 56 kbps with short cables, and can probably be made to work at 250 kbps, but it is unlikely to run at 1 Mbps since the required rise/fall times are too slow for that.  Standard integral modem speeds go as high as 1 Mbps; the adapter can go faster but standard DEC hardware does not; also, at some higher speeds the quantization error of the PIO clock divider becomes a problem and receive data recovery no longer works.
@@ -69,7 +75,7 @@ This is the transmit data rate, if the "split speed" bit is set in `mflags`.
 
 Status packet starts with 021 (after the usual 2 byte payload length and receive status fields), followed by state and counter data:
 
-* state (1 byte): flags, bit 0 = on (active), bit 1 = in-sync
+* state (1 byte): flags, bit 0 = on (active), bit 1 = in-sync, bit 2 = bit clock ok
 * mode and flags (2 bytes): as described above for the Start command
 * maximum frame payload: 1486 -- information for the host software
 * speed (4 bytes): as described above.  Not used for RS-232 DTE mode.
@@ -112,6 +118,10 @@ Last command status values are:
 5: Bad transmit length.  For regular transmits, this means a control frame (starts with 0x05) less than 6 bytes long, or a data frame (starts with 0x81 or 0x90) with length in the header either 0 or greater than 1486, or not enough data in the Ethernet packet for the length given in the header.  For raw transmit, more than 1486 bytes.
 
 6: Transmit request when the framer is stopped.
+
+7: Invalid combination of mode bits in start command: RAW_WAVEFORM mode used with RS232 or BIST.
+
+8: (Regular) transmit request while RAW_WAVEFORM mode is in effect.
 
 Note that transmit attempts in BIST mode are not errors; they are simply ignored.
 

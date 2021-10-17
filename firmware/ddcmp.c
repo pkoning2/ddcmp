@@ -89,18 +89,21 @@
 #define TXPIO pio0
 #define TXSM  2
 #define FREQPIO  pio1
-#define FREQSM   1
+#define FREQSM   0
+#define WDOGPIO  pio1
+#define WDOGSM   1
 // The two LED pulse stretcher SMs share the same program
 #define BLINKPIO pio1
 #define RXLEDSM  3
 #define TXLEDSM  2
 
 // Load addresses for these
-uint16_t rxtop, txtop, imbittop, blinktop;
+uint16_t rxtop, txtop, imbittop, blinktop, freqtop;
 
 // Jumps back to top
 uint16_t rxsm_jmptop;
 uint16_t blinksm_jmptop;
+uint16_t freqsm_jmptop;
 
 // Core 1 related state
 volatile bool core1_active = false;
@@ -146,8 +149,9 @@ bool bist = false;
 // the second half of the bit cell).
 #define RXRECDATA 8     // Integral modem recovered receive bit stream
 #define IMSTROBE  9     // Integral modem receive strobe (RXRECDATA + 1)
-#define LCPIN    6      // Loopback clock pin
-#define LDPIN    7      // Loopback data pin
+#define LCPIN     6     // Loopback clock pin
+#define LDPIN     7     // Loopback data pin
+#define CLOCKOK   16    // Bit clock ok (from watchdog state machine)
 
 // These are pins we use as output; they are explicitly driven to 0 at
 // initialization and ddcmp stop.
@@ -164,7 +168,8 @@ const uint8_t opins[] = {
     RXRECDATA,
     IMSTROBE,
     LCPIN,
-    LDPIN
+    LDPIN,
+    CLOCKOK
 };
 
 // DDCMP character codes
@@ -209,6 +214,7 @@ const uint8_t opins[] = {
 #define BIST            8
 #define SPLIT           16
 #define DDCMP3          32  // DDCMP V3.03 (DMC-11) compatibility
+#define RAW_WAVEFORM    64  // Integral modem test, send raw waveforms
 
 // DDCMP framing state machine state codes
 enum ddcmp_state
@@ -227,6 +233,7 @@ enum ddcmp_status
     DDCMP_HCRC,         // Header CRC error
     DDCMP_CRC,          // Payload CRC error
     DDCMP_LONG,         // Payload too long
+    DDCMP_LOC,          // Loss of carrier in mid-frame
     BUF_EMPTY           // Buffer waiting to be filled
 };
 
@@ -270,6 +277,9 @@ bool dmc_syn_al = false;
 
 // Set to true if we're in DMC11 mode, any link type.
 bool dmc = false;
+
+// True if we're in raw waveform mode.
+bool raw_wave = false;
 
 // DMA channel number
 int txdma;
@@ -352,6 +362,7 @@ struct status_msg_t
 
 #define ON_ACT 1
 #define ON_SYN 2
+#define ON_CLKOK 4
 
 enum last_cmd_status_t
 {
@@ -362,6 +373,8 @@ enum last_cmd_status_t
     CMD_BAD_SPEED,          // Speed is out of range
     TX_BAD_LENGTH,          // Transmit frame bad length
     TX_OFF,                 // Transmit request when device is off
+    CMD_BAD_MODE,           // Invalid start mode flags
+    TX_WHEN_RAW,            // Transmit during raw waveform mode
 };
 
 struct status_msg_t status_msg;
@@ -531,6 +544,7 @@ void ddcmp_cpu1 (void)
                 if (!pio_sm_is_rx_fifo_empty (RXPIO, RXSM))
                 {
                     rword = pio_sm_get (RXPIO, RXSM);
+                    DDPRINTF ("%08x\n", rword);
                     break;
                 }
                 // Next priority after receive: transmit DMA
@@ -561,19 +575,45 @@ void ddcmp_cpu1 (void)
                 if (!pio_sm_is_rx_fifo_empty (FREQPIO, FREQSM))
                 {
                     // Get a sample from the frequency counter
-                    int period = -(int) pio_sm_get (FREQPIO, FREQSM);
-                    int avg = avg_period;
+                    int period = (-(int) pio_sm_get (FREQPIO, FREQSM)) << 5;
 
-                    if (avg)
+                    // Process sample only if bit clock is good
+                    if (gpio_get (CLOCKOK))
                     {
-                        // Update the weighted average (weight = 32).
-                        avg = ((avg << 5) - avg + period) >> 5;
-                        avg_period = avg;
+                        int avg = avg_period;
+
+                        if (avg)
+                        {
+                            // Update the weighted average (weight = 32).
+                            avg = ((avg << 5) - avg + period) >> 5;
+                            avg_period = avg;
+                        }
+                        else
+                        {
+                            avg_period = period;
+                        }
                     }
-                    else
+                }
+                // Check if bit clock is currently bad
+                if (!gpio_get (CLOCKOK))
+                {
+                    // No clock.  If we're in mid packet, terminate
+                    // that packet with a loss of clock error.
+                    if (!(ds == DEL1 || ds == PKT_START || ds == FLUSH))
                     {
-                        avg_period = period;
+                        DPRINTF ("Loss of clock in mid-frame, state = %d\n", ds);
+                        buf_done (DDCMP_LOC);
+                        // TODO: count it?
                     }
+                    if (gpio_get (SYNLED))
+                    {
+                        // We were in sync, force syn search
+                        DPRINTF ("Loss of clock while in sync\n");
+                        syn_search ();
+                        ds = FLUSH;
+                    }
+                    // Restart the frequency measurement SM
+                    pio_sm_exec (FREQPIO, FREQSM, freqsm_jmptop);
                 }
             }
             else
@@ -829,6 +869,28 @@ static pio_sm_config inmodem_xmit_config (uint offset, uint speed, int txpin)
     return c;
 }
 
+static pio_sm_config inmodem_rawxmit_config (uint offset, uint speed, int txpin)
+{
+    pio_sm_config c;
+    c = inmodem_rawxmit_program_get_default_config (offset);
+    txtop = offset;
+    
+    // clock from bit rate
+    sm_config_set_clkdiv_freq (&c, speed * 4);
+    // FIFO: threshold 8 (or 32), shift right, no autopull, joined
+#if TX8
+    sm_config_set_out_shift (&c, true, false, 8);
+#else
+    sm_config_set_out_shift (&c, true, false, 32);
+#endif
+    sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_TX);
+    // output: integral modem tx data
+    // no side set
+    sm_config_set_out_pins (&c, txpin, 1);
+    
+    return c;
+}
+
 static pio_sm_config local_clk_recv_config (uint offset, int rxpin)
 {
     pio_sm_config c;
@@ -889,8 +951,25 @@ static pio_sm_config freq_config (uint offset, int pin)
 {
     pio_sm_config c;
     c = freq_program_get_default_config (offset);
+    freqtop = offset;
+    freqsm_jmptop = pio_encode_jmp (offset);
+    sm_config_set_in_pins (&c, CLOCKOK);
     sm_config_set_jmp_pin (&c, pin);
     sm_config_set_fifo_join (&c, PIO_FIFO_JOIN_RX);
+
+    return c;
+}
+
+static pio_sm_config wdog_config (uint offset, int pin)
+{
+    pio_sm_config c;
+    c = watchdog_program_get_default_config (offset);
+    // Input and jump pin: the pin to watch
+    sm_config_set_in_pins (&c, pin);
+    sm_config_set_jmp_pin (&c, pin);
+    // side set: clock_ok signal
+    sm_config_set_sideset_pins (&c, CLOCKOK);
+    sm_config_set_out_shift (&c, true, false, 32);
 
     return c;
 }
@@ -900,7 +979,9 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
     int i;
     uint offset;
     pio_sm_config rxconfig, txconfig, blinkconfig, imconfig, freqconfig;
-    int rxpin, txpin, clkpin, freqpin;
+    pio_sm_config wdogconfig;
+    int wdog_period;
+    int rxpin, txpin, clkpin, freqpin, wdogpin;
 
     DPRINTF ("Setting up PIO state machines, flags 0x%02x, speed %d\n",
             mflags, speed);
@@ -916,6 +997,7 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
     pio_gpio_init (RXPIO, IMSTROBE);
     pio_gpio_init (TXPIO, LCPIN);
     pio_gpio_init (TXPIO, LDPIN);
+    pio_gpio_init (WDOGPIO, CLOCKOK);
     // LEDs
     pio_gpio_init (RXPIO, SYNLED);
     pio_gpio_init (BLINKPIO, RXLED);
@@ -936,11 +1018,24 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
     pio_sm_set_enabled (BLINKPIO, TXLEDSM, true);
     DPRINTF ("TX LED pulse stretcher active\n");
 
+    if (mflags & (INT_MODEM | RS232_LOCAL_CLK))
+    {
+        // local clock or integral modem, derive watchdog period from
+        // nominal receive data rate
+        wdog_period = clock_get_hz (clk_sys) / speed;
+    }
+    else
+    {
+        // modem clock, assume slow bits
+        wdog_period = clock_get_hz (clk_sys) / 1200;
+    }
+    
     // Set up the right I/O state machines for the chosen mode
     if (mflags & INT_MODEM)
     {
         // Integral modem.  We want inmodem_xmit, inmodem_rxbit,
-        // local_clk_recv.
+        // local_clk_recv.  But if raw waveform mode is requested, use
+        // inmodem_rawxmit instaed.
         DPRINTF ("Initializing integral modem\n");
         rxpin = IMRXDATA;
         txpin = IMTXDATA;
@@ -954,12 +1049,25 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
             DPRINTF ("Setting integral modem enable\n");
             gpio_put (IMEN, true);
         }
-        freqpin = rxpin;
+        // Frequency measurement uses the data strobe signal generated
+        // by the clock/data recovery state machine.
+        freqpin = wdogpin = IMSTROBE;
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for integral modem case.
         rxconfig = local_clk_recv_config (offset, RXRECDATA);
-        offset = pio_add_program (TXPIO, &inmodem_xmit_program);
-        txconfig = inmodem_xmit_config (offset, txspeed, txpin);
+        if (mflags & RAW_WAVEFORM)
+        {
+            offset = pio_add_program (TXPIO, &inmodem_rawxmit_program);
+            txconfig = inmodem_rawxmit_config (offset, txspeed, txpin);
+            DPRINTF ("Setting raw waveform mode\n");
+            wdogpin = rxpin;
+            wdog_period *= 2;
+        }
+        else
+        {
+            offset = pio_add_program (TXPIO, &inmodem_xmit_program);
+            txconfig = inmodem_xmit_config (offset, txspeed, txpin);
+        }
         offset = pio_add_program (IMBITPIO, &inmodem_rxbit_program);
         imconfig = inmodem_rxbit_config (offset, speed, rxpin);
         pio_sm_init (IMBITPIO, IMBITSM, offset, &imconfig);
@@ -994,7 +1102,7 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
             DPRINTF ("Enabling RS-232\n");
             gpio_put (RS232EN, true);
         }
-        freqpin = clkpin;
+        freqpin = wdogpin = clkpin;
         offset = pio_add_program (RXPIO, &local_clk_recv_program);
         // Second argument true means configure for RS-232 case.
         rxconfig = local_clk_recv_config (offset, rxpin);
@@ -1013,7 +1121,7 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
         // modem_clk_recv.
         DPRINTF ("Initializing RS-232, modem supplied clock\n");
         DPRINTF ("Enabling RS-232\n");
-        freqpin = RXCLKIN;
+        freqpin = wdogpin = RXCLKIN;
         gpio_put (RS232EN, true);
         offset = pio_add_program (RXPIO, &modem_clk_recv_program);
         rxconfig = modem_clk_recv_config (offset);
@@ -1028,9 +1136,26 @@ static void setup_pios (uint mflags, uint speed, uint txspeed)
     avg_period = 0;
     offset = pio_add_program (FREQPIO, &freq_program);
     freqconfig = freq_config (offset, freqpin);
+    pio_sm_set_consecutive_pindirs (FREQPIO, FREQSM, CLOCKOK, 1, false);
     pio_sm_set_consecutive_pindirs (FREQPIO, FREQSM, freqpin, 1, false);
     pio_sm_init (FREQPIO, FREQSM, offset, &freqconfig);
     pio_sm_set_enabled (FREQPIO, FREQSM, true);
+
+    // Set up the bit clock watchdog
+    offset = pio_add_program (WDOGPIO, &watchdog_program);
+    wdogconfig = wdog_config (offset, wdogpin);
+    pio_sm_set_consecutive_pindirs (WDOGPIO, WDOGSM, wdogpin, 1, false);
+    pio_sm_set_consecutive_pindirs (WDOGPIO, WDOGSM, CLOCKOK, 1, true);
+    pio_sm_init (WDOGPIO, WDOGSM, offset, &wdogconfig);
+    // Set up watchdog machine.
+    //  pull
+    //  mov	x, osr
+    pio_sm_put (WDOGPIO, WDOGSM, wdog_period);
+    pio_sm_exec (WDOGPIO, WDOGSM, pio_encode_pull (false, false));
+    pio_sm_exec (WDOGPIO, WDOGSM, pio_encode_mov (pio_x, pio_osr));
+    pio_sm_set_enabled (WDOGPIO, WDOGSM, true);
+    
+
     // Build the "resynchronize" jump
     rxsm_jmptop = pio_encode_jmp (rxtop);
     // Initialize rx and tx state machines
@@ -1116,7 +1241,7 @@ static void stop_ddcmp (void)
     // use, it's only used for the integral modem case, but stopping
     // it can't hurt.
     rx_enabled = false;
-    dmc_syn_al = dmc = false;
+    dmc_syn_al = dmc = raw_wave = false;
     bist = false;
     pio_sm_set_enabled (RXPIO, RXSM, false);
     pio_sm_set_enabled (TXPIO, TXSM, false);
@@ -1136,7 +1261,7 @@ static void stop_ddcmp (void)
 #if DEBUG
 #define FIRST 2
 #else
-#define FIRST 0
+#define FIRST 02
 #endif
     // Initialize all pins and set them all to be pulled down, so
     // no-connect pins are in a well defined state.
@@ -1204,8 +1329,24 @@ static void start_ddcmp (uint mflags, uint speed, uint txspeed)
     {
         DPRINTF ("speed out of range, %d %d\n", speed, txspeed);
         status_msg.last_cmd_sts = CMD_BAD_SPEED;
+        bist = false;
         return;
     }
+    if (mflags & RAW_WAVEFORM)
+    {
+        if (bist || !(mflags & INT_MODEM))
+        {
+            // RAW_WAVEFORM applies to internal modem only, and conflicts
+            // with BIST because that doesn't know how to generate raw
+            // waveform test data.
+            DPRINTF ("Invalid combination of RAW_WAVEFORM with other modes\n");
+            status_msg.last_cmd_sts = CMD_BAD_MODE;
+            bist = false;
+            return;
+        }
+        raw_wave = true;
+    }
+
     // Initialize receive buffers to be all free
     for (i = 0; i < RBUFS; i++)
     {
@@ -1399,7 +1540,7 @@ static void command (const void *_cmd, uint16_t size)
         if (plen > RDATA)
         {
             DPRINTF ("Raw transmit too long, %d\n", plen);
-            status_msg.last_cmd_sts = CMD_BAD_MSG;
+            status_msg.last_cmd_sts = TX_BAD_LENGTH;
             return;
         }
         if (!rx_enabled)
@@ -1449,6 +1590,12 @@ static bool transmit (uint8_t *pkt, uint16_t size)
     {
         DPRINTF ("transmit when off\n");
         status_msg.last_cmd_sts = TX_OFF;
+        send_status = true;
+        return true;
+    }
+    if (raw_wave)
+    {
+        status_msg.last_cmd_sts = TX_WHEN_RAW;
         send_status = true;
         return true;
     }
@@ -1605,7 +1752,7 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
     {
         send_status = false;
         // Figure out the "on" flags
-        if (status_msg.on)
+        if (status_msg.on & ON_ACT)
         {
             if (gpio_get (SYNLED))
             {
@@ -1617,33 +1764,35 @@ uint16_t tud_network_xmit_cb (uint8_t *dst, void *ref, uint16_t arg)
                 status_msg.on = ON_ACT;
                 syn_status = false;
             }
+            if (gpio_get (CLOCKOK))
+            {
+                status_msg.on |= ON_CLKOK;
+            }
         }
         
         // Convert average period to frequency.  For the RS-232 case,
         // the period is the modem clock period, so its reciprocal is
-        // the frequency.  For the integral modem case we get one
-        // cycle per zero bit and 1/2 a cycle per one bit, so we
-        // assume 50% bit density and scale the frequency by 4/3 for
-        // that mode.  Note that 50% bit density is correct for an
-        // idling line, since the SYN byte has 4 ones and 4 zeroes.
+        // the frequency.  For the integral modem case we use the
+        // "strobe" test signal, which has one pulse (one cycle, two
+        // edges) per recovered data bit.
+        //
         // The avg_period variable is the moving average of the raw
         // measurements from the frequency PIO state machine, which
         // counts every two CPU cycles and delivers the sum of 32
-        // measurements.  But note that due to loop overhead, 68
+        // measurements.  But note that due to loop overhead, some
         // cycles are not accounted for, so they are added in here.
-        int cycles = avg_period;
+        int period = avg_period;
         float freq;
-        if (cycles != 0)
+        if (period != 0)
         {
-            freq = ((float) clock_get_hz (clk_sys) / ((cycles * 2 + 68))) * 32;
+            // We keep the moving average in units of 1/32 so correct
+            // for that.
+            period >>= 5;
+            freq = (((float) clock_get_hz (clk_sys)) / ((period + 32) * 2)) * 32;
         }
         else
         {
             freq = 0;
-        }
-        if (status_msg.mflags & INT_MODEM)
-        {
-            freq *= 4. / 3.;
         }
         status_msg.freq = freq;
 
@@ -1890,7 +2039,7 @@ int main ()
         {
             send_bist_data ();
         }
-        if (status_msg.on)
+        if (status_msg.on & ON_ACT)
         {
             // Framer is on, see if we need to update host with new
             // SYN status.
@@ -1899,11 +2048,13 @@ int main ()
                 if (!syn_status)
                 {
                     send_status = true;
+                    DPRINTF ("Status request, SYN now true\n");
                 }
             }
             else if (syn_status)
             {
                 send_status = true;
+                DPRINTF ("Status request, SYN now false\n");
             }
         }
         tud_task();
