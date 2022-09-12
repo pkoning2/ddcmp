@@ -88,6 +88,8 @@ The host interface uses the TinyUSB open source library, in device mode configur
 
 The main loop, running in ARM CPU 0, polls the USB for outgoing Ethernet frames and the received packet ring (from CPU 1) for incoming DDCMP frames to be sent to the host.
 
+The messages exchanged between host and framer are constructed as standard Ethernet frames, except that short frames are not padded (framer to host) or required to be padded (host to framer).  Refer to the API documentation in api.md for details on the encoding of the frames.
+
 ## Outbound frame processing (host to framer)
 
 The framer checks the Ethernet protocol type field for the value 60-06 (the DEC reserved value for "customer use").  Frames with other protocol types are ignored.  Some will appear because operating services like DHCP or other configuration mechanisms may send IP frames on any interface that shows up.
@@ -118,7 +120,7 @@ At any time when status needs to be reported, the `send_status` flag is set.  If
 
 Otherwise, if the next buffer in the receive ring is not free, it is sent to the host and marked free.
 
-All packets from framer to host have an Ethernet header with DA AA-00-03-04-05-06, SA AA-00-03-04-05-07, and protocol type 60-06.  The first two bytes of data are the receive status, which is 0 for good frames and non-zero for various error cases such as header CRC error.  (Refer to the API spec for details.)  Status frames always have 0 receive status.
+The first two bytes in all inbound frames are the receive status, which is 0 for good frames and non-zero for various error cases such as header CRC error.  (Refer to the API spec for details.)  Status frames always have 0 receive status.
 
 # BIST
 
