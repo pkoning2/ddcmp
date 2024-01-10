@@ -1445,7 +1445,7 @@ void handle_rbuf (void)
 
     if (send_status)
     {
-        if (tud_network_can_xmit ())
+        if (tud_network_can_xmit (sizeof (status_msg)))
         {
             DPRINTF ("requesting status transmit\n");
             tud_network_xmit (&status_msg, MINE (sizeof (status_msg)));
@@ -1464,7 +1464,7 @@ void handle_rbuf (void)
         }
         else
         {
-            if (tud_network_can_xmit ())
+            if (tud_network_can_xmit (MINE (df->data_len + ETH_HDR + 2)))
             {
                 DDPRINTF ("requesting transmit for frame %d\n", rbuf_empty);
                 tud_network_xmit (df->bufhdr, MINE (df->data_len + ETH_HDR + 2));
